@@ -1,0 +1,10 @@
+
+/build
+/a.out
+
+*.swp
+*.swo
+*.swn
+
+/tags
+
