@@ -6,6 +6,8 @@
 #include <GL/glut.h>  // GLUT, include glu.h and gl.h
 #include <GL/glext.h>
 #include <GL/glcorearb.h>
+#include <GLFW/glfw3.h>
+#include <stdio.h>
 
 /* Handler for window-repaint event. Call back when the window first appears and
    whenever the window needs to be re-painted. */
@@ -36,7 +38,7 @@ int draw(int argc, char** argv) {
    return 0;
 }
 
-int main()
+GLuint create_rbo()
 {
 	GLuint rb_id;
 	glGenRenderbuffers(1, &rb_id);
@@ -52,4 +54,42 @@ int main()
 	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		printf("error %d != %d\n", status, GL_FRAMEBUFFER_COMPLETE);
 	}
+	return 0;
+}
+
+int main()
+{
+	//Инициализация GLFW
+	glfwInit();
+	//Настройка GLFW
+	//Задается минимальная требуемая версия OpenGL.
+	//Мажорная
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	//Минорная
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//Установка профайла для которого создается контекст
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//Выключение возможности изменения размера окна
+	//glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+
+	GLFWwindow* window = glfwCreateWindow(800, 600, "window name", NULL, NULL);
+	if (window == NULL)
+	{
+		printf("error\n");
+		glfwTerminate();
+		return -1;
+	}
+	glfwMakeContextCurrent(window);
+
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+
+	while(!glfwWindowShouldClose(window))
+	{
+	    glfwPollEvents();
+	    glfwSwapBuffers(window);
+	}
+	glfwTerminate();
+	return 0;
 }
