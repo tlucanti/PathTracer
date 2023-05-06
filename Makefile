@@ -1,5 +1,5 @@
 
-all: cl
+all: gl
 
 cl:
 	clang \
