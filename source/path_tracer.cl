@@ -2,6 +2,8 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define TRACE_BOUNCE_COUNT 1
+#define RAND_MAX UINT_MAX
+#define RAND_HALF (UINT_MAX / 2)
 
 struct Sphere {
 	float3 color;
@@ -22,11 +24,24 @@ struct HitInfo {
 	bool didHit;
 };
 
-__constant unsigned int __randomSeed = 0;
-
-inline unsigned int nextRandomInt(unsigned int seed)
+/* returns next random integer from previous number */
+inline unsigned int nextRandomInt(unsigned int prev)
 {
-	return seed * 0x5DEECE66D + 0xB;
+	return prev * 0x5DEECE66D + 0xB;
+}
+
+/* returns next random float in range [0, 1] from previous generated number */
+inline float nextRandomFloat(unsigned int *seed)
+{
+	*seed = nextRandomInt(*seed);
+	return (float)(*seed) / RAND_MAX;
+}
+
+/* returns next random float in range [-1, 1] from previous generated number */
+inline float nextRandomFloatNeg(unsigned int *seed)
+{
+	*seed = nextRandomInt(*seed);
+	return (float)(*seed) / RAND_HALF - (float)1;
 }
 
 inline void setPixelColor(__global unsigned int *canvas, unsigned short x,
@@ -50,12 +65,13 @@ void intersectSphere(struct Ray *ray, struct HitInfo *hitInfo, __constant struct
 
 }
 
-float3 randomHemiSphere(float3 normal, unsigned int seed)
+float3 randomHemiSphere(float3 normal, unsigned int *seed)
 {
 	float3 direction;
-	direction.x = nextRandomInt(seed);
-	direction.y = nextRandomInt(direction.x);
-	direction.z = nextRandomInt(direction.y);
+
+	direction.x = nextRandomFloatNeg(seed);
+	direction.y = nextRandomFloatNeg(seed);
+	direction.z = nextRandomFloatNeg(seed);
 	return direction;
 }
 

@@ -13,7 +13,6 @@ cl:
 		cllib/src/cllib.c src/main.c src/panic.c \
 		/usr/lib/x86_64-linux-gnu/libOpenCL.so
 
-
 gl:
 	clang \
 		-Wall -Wextra \
