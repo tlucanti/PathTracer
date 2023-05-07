@@ -1,5 +1,5 @@
 
-all: gl
+all: cl
 
 cl:
 	clang \
@@ -8,10 +8,14 @@ cl:
 		-O0 -g3 -fno-omit-frame-pointer -fno-inline \
 		-I include \
 		-I cllib/include \
+		-I gllib/include \
+		-I ../glfw/include \
 		-D CONFIG_DEVICE_TYPE_GPU \
 		-D CONFIG_PRINT_PROGRAM_LOG \
-		cllib/src/cllib.c src/main.c src/panic.c \
-		/usr/lib/x86_64-linux-gnu/libOpenCL.so
+		-L ../glfw/build/src \
+		cllib/src/cllib.c src/test.c src/panic.c \
+		gllib/src/gllib.c \
+		-lOpenCL -lOpenGL -lglfw3 -lm -lGLX
 
 gl:
 	clang \

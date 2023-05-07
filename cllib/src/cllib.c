@@ -1,22 +1,6 @@
 
 #include <cllib/cllib.h>
-
-static const char *cl_strerror(cl_int error);
-
-#define cl_panic_on(expr, msg, error) do {	\
-	if (unlikely(expr)) {			\
-		cl_panic(msg, error);		\
-	}					\
-} while (false)
-
-#define cl_panic(msg, error) __cl_panic(msg, error, __FILE__, __LINE__)
-
-__cold __noreturn
-static void __cl_panic(const char *msg, cl_int error, const char *file, unsigned long line)
-{
-	printf("%s:%ld\npanic: %s: %s\n", file, line, msg, cl_strerror(error));
-	abort();
-}
+#include <cllib/common.h>
 
 device_t create_device()
 {
@@ -127,6 +111,22 @@ inline buffer_t create_buffer(context_t context, enum buffer_type type, size_t s
 	return (buffer_t){ .__buffer=buffer, .__size=size };
 }
 
+
+cl_mem clCreateFromGLRenderbuffer(
+	cl_context context, cl_mem_flags flags, unsigned int renderbuffer, cl_int * errcode_ret);
+inline buffer_t create_buffer_from_rbo(context_t context, enum buffer_type type, unsigned int rbo)
+{
+	cl_context ctx;
+	cl_mem buffer;
+	cl_int err;
+
+	ctx = context.__context;
+	buffer = clCreateFromGLRenderbuffer(ctx, type, rbo, &err);
+	cl_panic_on(err, "clCreateFromGLRenderbuffer", err);
+
+	return (buffer_t){ .__buffer=buffer, .__size=0 };
+}
+
 inline void fill_buffer(queue_t queue, buffer_t buffer, void *data, bool blocking_write)
 {
 	cl_command_queue qw;
@@ -184,7 +184,14 @@ inline void flush_queue(queue_t queue)
 	cl_panic_on(err, "clFlush", err);
 }
 
-static const char *cl_strerror(cl_int error)
+__cold __noreturn
+void __cl_panic(const char *msg, cl_int error, const char *file, unsigned long line)
+{
+	printf("%s:%ld\npanic: %s: %s\n", file, line, msg, cl_strerror(error));
+	abort();
+}
+
+const char *cl_strerror(cl_int error)
 {
 	switch(error)
 	{

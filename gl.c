@@ -12,14 +12,13 @@
 void *glXGetProcAddressARB(char *);
 void *glXGetProcAddress(char *);
 typedef void (*FGL_GEN_BUFFERS) (GLsizei, GLuint *);
-typedef void (*FGL_GEN_RENDER_BUFFERS) (GLsizei, GLuint *);
+void (*FglGenRenderBuffers) (GLsizei, GLuint *) = NULL;
 typedef GLenum (*FGL_CHECK_FRAMEBUFFER_STATUS) (GLenum);
 typedef void (*FGL_BIND_RENDER_BUFFER) (GLenum, GLuint);
 typedef void (*FGL_RENDER_BUFFER_STORAGE) (GLenum, GLenum, GLsizei, GLsizei);
 typedef void (*FGL_FRAME_BUFFER_RENDER_BUFFER) (GLenum, GLenum, GLenum, GLuint);
 typedef void (*FGL_BIND_FRAME_BUFFER) (GLenum, GLuint);
 FGL_GEN_BUFFERS FglGenBuffers = NULL;
-FGL_GEN_RENDER_BUFFERS FglGenRenderBuffers = NULL;
 FGL_CHECK_FRAMEBUFFER_STATUS FglCheckFramebufferStatus = NULL;
 FGL_BIND_RENDER_BUFFER FglBindRenderbuffer = NULL;
 FGL_RENDER_BUFFER_STORAGE FglRenderbufferStorage = NULL;
@@ -104,7 +103,7 @@ void check_buffer()
 GLuint create_rbo()
 {
 	GLuint rb_id;
-	FglGenRenderBuffers(1, &rb_id);
+	glGenRenderbuffers(1, &rb_id);
 	check_error();
 	printf("generated\n");
 

@@ -54,6 +54,7 @@ context_t create_context(device_t device);
 kernel_t create_kernel(device_t device, context_t context, const char *source, const char *kernel_name);
 queue_t create_queue(context_t context, device_t device);
 buffer_t create_buffer(context_t context, enum buffer_type, size_t size);
+buffer_t create_buffer_from_rbo(context_t context, enum buffer_type type, unsigned int rbo);
 void fill_buffer(queue_t queue, buffer_t buffer, void *data, bool blocking_write);
 void dump_buffer(queue_t queue, buffer_t buffer, void *data, bool blocking_read);
 void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index, size_t arg_size, void *arg_value);
