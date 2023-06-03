@@ -1,6 +1,18 @@
 
 all: cl
 
+libcl:
+	mkdir -p build
+	clang \
+		-c -Wall -Wextra \
+		-fdiagnostics-color=always \
+		-O3 -fomit-frame-pointer \
+		-I include \
+		-I cllib/include \
+		cllib/src/cllib.c src/panic.c
+	ar rcs build/libcl.a cllib.o panic.o
+	rm -f cllib.o panic.o
+
 cl:
 	clang \
 		-Wall -Wextra \

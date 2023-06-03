@@ -2,7 +2,7 @@
 #include <cllib/cllib.h>
 #include <cllib/common.h>
 
-device_t create_device()
+device_t create_device(enum device_type type)
 {
 	cl_platform_id platform;
 	cl_uint num_platforms;
@@ -23,14 +23,14 @@ device_t create_device()
 	err = clGetPlatformIDs(1, &platform, NULL);
 	cl_panic_on(err, "clGetPlatformIDs", err);
 
-	err = clGetDeviceIDs(platform, CLLIB_DEVICE_TYPE, 0, NULL, &num_devices);
+	err = clGetDeviceIDs(platform, type, 0, NULL, &num_devices);
 	cl_panic_on(err, "clGetDeviceIDs", err);
 	if (num_devices == 0) {
 		panic("no devices avaliable");
 	} else if (num_devices > 1) {
 		warn("multiple devices avaliable, chosing first one");
 	}
-	err = clGetDeviceIDs(platform, CLLIB_DEVICE_TYPE, 1, &dev, NULL);
+	err = clGetDeviceIDs(platform, type, 1, &dev, NULL);
 	cl_panic_on(err, "clGetDeviceIDs", err);
 
 	return (device_t){ .__device=dev };
@@ -49,7 +49,7 @@ inline context_t create_context(device_t device)
 	return (context_t){ .__context=context };
 }
 
-kernel_t create_kernel(device_t device, context_t context, const char *source, const char *kernel_name)
+kernel_t create_kernel(device_t device, context_t context, const char *source, const char *kernel_name, const char *options)
 {
 	cl_program program;
 	cl_device_id dev;
@@ -62,7 +62,7 @@ kernel_t create_kernel(device_t device, context_t context, const char *source, c
 	ctx = context.__context;
 	program = clCreateProgramWithSource(ctx, 1, &source, NULL, &err);
 	cl_panic_on(err, "clCreateProgramWithSource", err);
-	err = clBuildProgram(program, 1, &dev, CLLIB_BUILD_OPTIONS, NULL, NULL);
+	err = clBuildProgram(program, 1, &dev, options, NULL, NULL);
 	if (err == CL_BUILD_PROGRAM_FAILURE && CLLIB_PRINT_PROGRAM_LOG) {
 		err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 		if (err != CL_SUCCESS) {
@@ -108,7 +108,7 @@ inline buffer_t create_buffer(context_t context, enum buffer_type type, size_t s
 	buffer = clCreateBuffer(ctx, type, size, NULL, &err);
 	cl_panic_on(err, "clCreateBuffer", err);
 
-	return (buffer_t){ .__buffer=buffer, .__size=size };
+	return (buffer_t){ .__buffer=buffer };
 }
 
 
@@ -124,33 +124,29 @@ inline buffer_t create_buffer_from_rbo(context_t context, enum buffer_type type,
 	buffer = clCreateFromGLRenderbuffer(ctx, type, rbo, &err);
 	cl_panic_on(err, "clCreateFromGLRenderbuffer", err);
 
-	return (buffer_t){ .__buffer=buffer, .__size=0 };
+	return (buffer_t){ .__buffer=buffer };
 }
 
-inline void fill_buffer(queue_t queue, buffer_t buffer, void *data, bool blocking_write)
+inline void fill_buffer(queue_t queue, buffer_t buffer, size_t size, void *data, bool blocking_write)
 {
 	cl_command_queue qw;
 	cl_mem buff;
 	cl_int err;
-	size_t size;
 
 	qw = queue.__queue;
 	buff = buffer.__buffer;
-	size = buffer.__size;
 	err = clEnqueueWriteBuffer(qw, buff, blocking_write, 0, size, data, 0, NULL, NULL);
 	cl_panic_on(err, "clEnqueueWriteBuffer", err);
 }
 
-inline void dump_buffer(queue_t queue, buffer_t buffer, void *data, bool blocking_read)
+inline void dump_buffer(queue_t queue, buffer_t buffer, size_t size, void *data, bool blocking_read)
 {
 	cl_command_queue qw;
 	cl_mem buff;
 	cl_int err;
-	size_t size;
 
 	qw = queue.__queue;
 	buff = buffer.__buffer;
-	size = buffer.__size;
 	err = clEnqueueReadBuffer(qw, buff, blocking_read, 0, size, data, 0, NULL, NULL);
 	cl_panic_on(err, "clEnqueueReadBuffer", err);
 }
