@@ -1,7 +1,7 @@
 
 include .config
 
-all: py
+all: validate
 
 
 py:
@@ -33,8 +33,7 @@ validate:
 		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
 		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
 		-D DEFINED_SCREEN_SIZE \
-		-D NO_INLINE \
-		src/test.cpp
+		src/test.cpp src/validate.cpp
 
 cpp:
 	clang++ \

@@ -20,7 +20,8 @@ EXTERN_C
  *
  * TODO: validate distribution
  */
-__always_inline __must_check unsigned int nextRandomInt(unsigned int prev)
+__always_inline __must_check static unsigned int
+nextRandomInt(unsigned int prev)
 {
 	return prev * 0x5DEECE66D + 0xB;
 }
@@ -36,7 +37,7 @@ __always_inline __must_check unsigned int nextRandomInt(unsigned int prev)
  *
  * TODO: validate distribution
  */
-__always_inline __must_check float
+__always_inline __must_check static float
 nextRandomFloat(unsigned int *__restrict seed)
 {
 	*seed = nextRandomInt(*seed);
@@ -52,7 +53,7 @@ nextRandomFloat(unsigned int *__restrict seed)
  *
  * TODO: validate distribution
  */
-__always_inline __must_check float
+__always_inline __must_check static float
 nextRandomFloatNeg(unsigned int *__restrict seed)
 {
 	*seed = nextRandomInt(*seed);
@@ -69,8 +70,8 @@ nextRandomFloatNeg(unsigned int *__restrict seed)
  *
  * TODO: validate distribution
  */
-__inline void randomDirection(float3 *__restrict direction,
-			      unsigned int *__restrict seed)
+__inline static void randomDirection(float3 *__restrict direction,
+				     unsigned int *__restrict seed)
 {
 	direction->x = nextRandomFloatNeg(seed);
 	direction->y = nextRandomFloatNeg(seed);
@@ -89,9 +90,9 @@ __inline void randomDirection(float3 *__restrict direction,
  *
  * TODO: validate distribution
  */
-__inline void randomHemiSphere(const float3 *__restrict normal,
-			       float3 *__restrict direction,
-			       unsigned int *__restrict seed)
+__inline static void randomHemiSphere(const float3 *__restrict normal,
+				      float3 *__restrict direction,
+				      unsigned int *__restrict seed)
 {
 	randomDirection(direction, seed);
 	if (dot(*direction, *normal) < 0)

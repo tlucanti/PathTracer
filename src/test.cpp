@@ -1,5 +1,4 @@
 
-
 #include <source/path_tracer.cl>
 
 EXTERN_C

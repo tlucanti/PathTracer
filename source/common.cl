@@ -11,19 +11,12 @@
 
 # define TRACE_BOUNCE_COUNT 1
 
-# ifdef NO_INLINE
-#  undef __always_inline
-#  undef __inline
-#  define __always_inline
-#  define __inline
-# else
-#  ifndef __always_inline
-#   define __always_inline inline __attribute__((__always_inline__))
-#  endif
-#  ifndef __inline
-#   define __inline inline
-#  endif
-# endif /* NO_INLINE */
+# ifndef __always_inline
+#  define __always_inline inline __attribute__((__always_inline__))
+# endif
+# ifndef __inline
+#  define __inline inline
+# endif
 
 # ifndef __must_check
 #  define __must_check __attribute__((__warn_unused_result__))
@@ -31,6 +24,10 @@
 
 # ifndef __unused
 #  define __unused __attribute__((__unused__))
+# endif
+
+# ifndef __used
+#  define __used __attribute__((__used__))
 # endif
 
 # define EXTERN_C extern "C" {

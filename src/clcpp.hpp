@@ -27,7 +27,7 @@ struct __dimention_manager {
 
 inline __dimention_manager __dim{ 0, 0 };
 
-unsigned int get_global_id(unsigned int dim)
+__inline unsigned int get_global_id(unsigned int dim)
 {
 	if (dim == 0) {
 		return __dim.x;

@@ -1,4 +1,7 @@
 
+#ifndef PATH_TRACER_CL
+#define PATH_TRACER_CL
+
 #include <common.cl>
 #include <random.cl>
 
@@ -182,3 +185,5 @@ __kernel void kernel(__global unsigned int *canvas,
 }
 
 EXTERN_C_END
+
+#endif /* PATH_TRACER_CL */
