@@ -9,8 +9,6 @@
 #  define SCREEN_HEIGHT 600
 # endif
 
-# define TRACE_BOUNCE_COUNT 1
-
 # ifndef __always_inline
 #  define __always_inline inline __attribute__((__always_inline__))
 # endif

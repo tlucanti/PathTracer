@@ -7,7 +7,9 @@
 
 EXTERN_C
 
-#define SPHERES_NUM 2
+#define SPHERES_NUM 5
+#define TRACE_BOUNCE_COUNT 10
+#define RAYS_PER_PIXEL 100
 
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
@@ -23,9 +25,18 @@ __always_inline void setPixelColor(__global unsigned int *canvas,
 {
 	unsigned int bit_color;
 
-	bit_color = (unsigned int)(color->z * 255);
-	bit_color |= (unsigned int)(color->y * 255) << 8;
-	bit_color |= (unsigned int)(color->x * 255) << 16;
+	unsigned int blue = color->z * 255;
+	unsigned int green = color->y * 255;
+	unsigned int red = color->x * 255;
+
+	red = min(red, 255u);
+	green = min(green, 255u);
+	blue = min(blue, 255u);
+
+	bit_color = blue | (green << 8) | (red << 16);
+
+
+	y = SCREEN_HEIGHT - y - 1;
 	canvas[y * SCREEN_WIDTH + x] = bit_color;
 }
 
@@ -160,8 +171,11 @@ __always_inline void pathTracer(__global unsigned int *canvas,
 	float3 pixelColor = FLOAT3(0, 0, 0);
 	unsigned int seed = (x << 12) + y;
 
-	createViewVector(&viewVector, x, y);
-	tracePath(&pixelColor, &viewVector, spheres, &seed);
+	for (int i = 0; i < RAYS_PER_PIXEL; ++i) {
+		createViewVector(&viewVector, x, y);
+		tracePath(&pixelColor, &viewVector, spheres, &seed);
+	}
+	pixelColor *= 1.0 / RAYS_PER_PIXEL;
 	setPixelColor(canvas, x, y, &pixelColor);
 }
 

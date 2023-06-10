@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from dotenv import load_dotenv
 import os
+from PIL import Image
 
 def trace():
 	width = int(os.getenv('SCREEN_WIDTH'))
@@ -16,7 +17,7 @@ def trace():
 	tr.end.argtypes = []
 
 	tr.run()
-	array = np.zeros((width, height, 3), dtype=int)
+	array = np.zeros((width, height, 3), dtype='uint8')
 	for x in range(width):
 		for y in range(height):
 			color = tr.get(x, y)
@@ -27,6 +28,9 @@ def trace():
 	return array
 
 def render(array):
+	im = Image.fromarray(array)
+	im.save('image.jpg')
+
 	plt.imshow(array)
 	plt.show()
 

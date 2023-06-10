@@ -13,13 +13,25 @@ void run()
 	struct Sphere spheres[SPHERES_NUM];
 
 	spheres[0] = { .color = RED,
-		       .position = FLOAT3(1, 0, 5),
+		       .position = FLOAT3(-0.3, -0.8, 9),
 		       .emissionStrength = 0.0,
 		       .radius = 1 };
-	spheres[1] = { .color = WHITE,
-		       .position = FLOAT3(-1, 0, 3),
+	spheres[1] = { .color = PURPLE,
+		       .position = FLOAT3(0, -100, 0),
+		       .emissionStrength = 0.0,
+		       .radius = 99 };
+	spheres[2] = { .color = BLUE,
+		       .position = FLOAT3(0, 0, 7),
+		       .emissionStrength = 0.0,
+		       .radius = 0.8 };
+	spheres[3] = { .color = WHITE,
+		       .position = FLOAT3(-8, 8, 10),
 		       .emissionStrength = 1,
-		       .radius = 0.6 };
+		       .radius = 10 };
+	spheres[4] = { .color = CYAN,
+		       .position = FLOAT3(1.3, -0.3, 7),
+		       .emissionStrength = 0.0,
+		       .radius = 0.7 };
 
 	for (int y = 0; y < SCREEN_HEIGHT; ++y) {
 		__dim.y = y;
