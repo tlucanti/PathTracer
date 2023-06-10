@@ -98,9 +98,9 @@ def randomHemiSphere(times, seed):
 	distribution3d('randomHemiSphere', array)
 
 def main():
-	#nextRandomInt(10000, 123)
-	#nextRandomFloat(10000, 123)
-	#nextRandomFloatNeg(10000, 123)
+	nextRandomInt(10000, 123)
+	nextRandomFloat(10000, 123)
+	nextRandomFloatNeg(10000, 123)
 	randomDirection(5000, 123123)
 	randomHemiSphere(5000, 121343)
 

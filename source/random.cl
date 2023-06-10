@@ -23,7 +23,9 @@ EXTERN_C
 __always_inline __must_check static unsigned int
 nextRandomInt(unsigned int prev)
 {
-	return prev * 0x5DEECE66D + 0xB;
+	prev *= (prev + 195439) * (prev + 124395) * (prev + 845921);
+	return prev;
+	//return (prev * 0x5DEECE66D + 0xB);
 }
 
 /**

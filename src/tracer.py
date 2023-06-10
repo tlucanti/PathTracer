@@ -10,6 +10,10 @@ def trace():
 	height = int(os.getenv('SCREEN_HEIGHT'))
 
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr.run.argtypes = []
+	tr.get.argtypes = [ctypes.c_uint, ctypes.c_uint]
+	tr.get.restype = ctypes.c_uint
+	tr.end.argtypes = []
 
 	tr.run()
 	array = np.zeros((width, height, 3), dtype=int)
