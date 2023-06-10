@@ -1,5 +1,16 @@
 
-all: cl
+all: cpp
+
+cpp:
+	clang++ \
+		-Wall -Wextra -Werror \
+		-fdiagnostics-color=always \
+		-O0 -g3 -std=c++2a \
+		-I . \
+		-I source \
+		-I src \
+		-D __clcpp__ \
+		src/test.cpp
 
 libcl:
 	mkdir -p build
@@ -13,7 +24,7 @@ libcl:
 	ar rcs build/libcl.a cllib.o panic.o
 	rm -f cllib.o panic.o
 
-cl:
+clgl:
 	clang \
 		-Wall -Wextra \
 		-fdiagnostics-color=always \

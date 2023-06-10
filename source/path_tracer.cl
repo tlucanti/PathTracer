@@ -1,112 +1,154 @@
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-#define TRACE_BOUNCE_COUNT 1
-#define RAND_MAX UINT_MAX
-#define RAND_HALF (UINT_MAX / 2)
+#include <common.cl>
+#include <random.cl>
 
-struct Sphere {
-	float3 color;
-	float3 position;
-	float emissionStrength;
-};
+#define SPHERES_NUM 1
 
-struct Ray {
-	float3 origin;
-	float3 direction;
-};
-
-struct HitInfo {
-	float3 hitColor;
-	float3 hitPoint;
-	float3 normal;
-	float emissionStrength;
-	bool didHit;
-};
-
-/* returns next random integer from previous number */
-inline unsigned int nextRandomInt(unsigned int prev)
-{
-	return prev * 0x5DEECE66D + 0xB;
-}
-
-/* returns next random float in range [0, 1] from previous generated number */
-inline float nextRandomFloat(unsigned int *seed)
-{
-	*seed = nextRandomInt(*seed);
-	return (float)(*seed) / RAND_MAX;
-}
-
-/* returns next random float in range [-1, 1] from previous generated number */
-inline float nextRandomFloatNeg(unsigned int *seed)
-{
-	*seed = nextRandomInt(*seed);
-	return (float)(*seed) / RAND_HALF - (float)1;
-}
-
-inline void setPixelColor(__global unsigned int *canvas, unsigned short x,
-			unsigned short y, float3 color)
+/**
+ * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
+ *
+ * @param canvas pixel color buffer in rgb format
+ * @param x coordinate in color buffer
+ * @param y coordinate in color buffer
+ * @param color rgb color with float [0, 1] color intensity
+ */
+__always_inline static void setPixelColor(__global unsigned int *canvas,
+					  unsigned short x, unsigned short y,
+					  const float3 *__restrict color)
 {
 	unsigned int bit_color;
 
-	bit_color = (unsigned int)(color.z * 255);
-	bit_color |= (unsigned int)(color.y * 255) >> 8;
-	bit_color |= (unsigned int)(color.x * 255) >> 16;
+	bit_color = (unsigned int)(color->z * 255);
+	bit_color |= (unsigned int)(color->y * 255) >> 8;
+	bit_color |= (unsigned int)(color->x * 255) >> 16;
 	canvas[(y) * SCREEN_WIDTH + (x)] = bit_color;
 }
 
-void createViewVector(struct Ray *ray, unsigned short x, unsigned short y)
+/**
+ * createViewVector() creates vector corresponding to position on a screen with
+ * given coordinates. Camera is in coordinates (0, 0, 0) and at the start is
+ * directed to (0, 0, 1) direction.
+ *
+ * @param ray place where to store resulted ray
+ * @param x position of pixel on the screen
+ * @param y position of pixel on the screen
+ */
+static void createViewVector(struct Ray *__restrict ray, short x, short y)
 {
-
+	ray->origin = FLOAT3(0, 0, 0);
+	x -= SCREEN_WIDTH / 2;
+	y -= SCREEN_HEIGHT / 2;
+	ray->direction.z = 1;
+	ray->direction.x = (float)x / (float)SCREEN_WIDTH;
+	ray->direction.y = (float)y / (float)SCREEN_HEIGHT;
 }
 
-void intersectSphere(struct Ray *ray, struct HitInfo *hitInfo, __constant struct Sphere *spheres)
+/**
+ * intersectSphere() computes distance to given sphere from ray
+ *
+ * @param hitDistance place where store distance to sphere from ray
+ * @param sphere the sphere to which the distance is calculated
+ * @return true if sphere is intersected by ray or false otherwise
+ *
+ * TODO: optimize
+ */
+bool intersectSphere(float *__restrict hitDistance,
+		     const struct Ray *__restrict ray,
+		     sphere_t *__restrict sphere)
 {
+	float3 oc = ray->origin - sphere->position;
 
+	float a = dot(ray->direction,
+		      ray->direction); // ! this always equals to 1
+	float b = 2 * dot(oc, ray->direction);
+	float c = dot(oc, oc) - square(sphere->radius);
+
+	float discriminant = b * b - 4 * a * c; // ! compute `2 * a` before
+	if (discriminant < EPS) {
+		return false;
+	}
+	discriminant = sqrt(discriminant);
+
+	float x1 = (-b + discriminant) / (2 * a); // ! compute `2 * a` before
+	float x2 = (-b - discriminant) / (2 * a); // ! compute `2 * a` before
+
+	float farestRoot = max(x1, x2);
+	if (farestRoot < EPS) {
+		return false;
+	}
+
+	*hitDistance = min(x1, x2);
+	return true;
 }
 
-float3 randomHemiSphere(float3 normal, unsigned int *seed)
+/**
+ * intersectAllSpheres() finds closest intersection to spheres in scene with ray
+ *
+ * @param viewVector the ray with which the intersection is calculated
+ * @param hitInfo place where resulter hit info is stored
+ * @param spheres array of inspecting spheres
+ */
+void intersectAllSpheres(const struct Ray *__restrict viewVector,
+			 HitInfo *__restrict hitInfo,
+			 sphere_t *__restrict spheres)
 {
-	float3 direction;
+	float closestHit = INFINITY;
+	float hitDistance;
+	int closestHitId = -1;
+	sphere_t *closestSphere;
 
-	direction.x = nextRandomFloatNeg(seed);
-	direction.y = nextRandomFloatNeg(seed);
-	direction.z = nextRandomFloatNeg(seed);
-	return direction;
+	for (int i = 0; i < SPHERES_NUM; ++i) {
+		if (intersectSphere(&hitDistance, viewVector, &spheres[i])) {
+			if (hitDistance < closestHit) {
+				closestHit = hitDistance;
+				closestHitId = i;
+			}
+		}
+	}
+	if (closestHitId == -1) {
+		hitInfo->didHit = false;
+		return;
+	}
+	closestSphere = &spheres[closestHitId];
+	hitInfo->didHit = true;
+	hitInfo->hitColor = closestSphere->color;
+	hitInfo->hitPoint =
+		viewVector->origin + viewVector->direction * closestHit;
+	hitInfo->normal = hitInfo->hitPoint - closestSphere->position;
+	hitInfo->normal *= (1 / closestSphere->radius);
+	hitInfo->emissionStrength = 1;
 }
 
-float3 tracePath(struct Ray *viewVector, __constant struct Sphere *spheres)
+void tracePath(float3 *__restrict incomingLight,
+	       struct Ray *__restrict viewVector, sphere_t *__restrict spheres,
+	       unsigned int *seed)
 {
-	float3 incomingLight = (float3)(0, 0, 0);
-	float3 rayColorIntensity = (float3)(1, 1, 1);
+	float3 rayColorIntensity = FLOAT3(1, 1, 1);
 	struct HitInfo hitInfo;
 
 	for (int i = 0; i < TRACE_BOUNCE_COUNT; ++i) {
-		intersectSphere(viewVector, &hitInfo, spheres);
+		intersectAllSpheres(viewVector, &hitInfo, spheres);
 		if (!hitInfo.didHit) {
-			break ;
+			break;
 		}
-		incomingLight += hitInfo.hitColor * hitInfo.emissionStrength;
-		rayColorIntensity *= hitInfo.hitColor;
+		*incomingLight += hitInfo.hitColor * hitInfo.emissionStrength;
+		vec_imul(&rayColorIntensity, &hitInfo.hitColor);
 
 		viewVector->origin = hitInfo.hitPoint;
-		viewVector->direction = randomHemiSphere(hitInfo.normal, 0);
+		randomHemiSphere(&hitInfo.normal, &viewVector->direction, seed);
 	}
-	return incomingLight;
 }
 
-__kernel void pathTracer()
-{}
-
-void _pathTracer(__global unsigned int *canvas, __constant struct Sphere *spheres)
+__kernel void pathTracer(__global unsigned int *canvas,
+			 __constant struct Sphere *spheres)
 {
-	return ;
 	struct Ray viewVector;
-	const unsigned short x = get_global_id(0);
-	const unsigned short y = get_global_id(1);
+	const short x = get_global_id(0);
+	const short y = get_global_id(1);
+	float3 pixelColor;
+	unsigned int seed = (x << 12) + y;
 
 	createViewVector(&viewVector, x, y);
-	float3 pixelColor = tracePath(&viewVector, spheres);
-	setPixelColor(canvas, x, y, pixelColor);
-	return ;
+	tracePath(&pixelColor, &viewVector, spheres, &seed);
+	setPixelColor(canvas, x, y, &pixelColor);
 }
