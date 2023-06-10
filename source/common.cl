@@ -4,8 +4,11 @@
 
 #define EPS 1e-5
 
+#ifndef DEFINED_SCREEN_SIZE
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
+#endif
+
 #define TRACE_BOUNCE_COUNT 1
 
 #ifndef __always_inline
@@ -14,6 +17,10 @@
 
 #ifndef __must_check
 #define __must_check __attribute__((__warn_unused_result__))
+#endif
+
+#ifndef __unused
+#define __unused __attribute__((__unused__))
 #endif
 
 #ifdef __clcpp__

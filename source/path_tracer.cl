@@ -19,9 +19,9 @@ __always_inline static void setPixelColor(__global unsigned int *canvas,
 	unsigned int bit_color;
 
 	bit_color = (unsigned int)(color->z * 255);
-	bit_color |= (unsigned int)(color->y * 255) >> 8;
-	bit_color |= (unsigned int)(color->x * 255) >> 16;
-	canvas[(y)*SCREEN_WIDTH + (x)] = bit_color;
+	bit_color |= (unsigned int)(color->y * 255) << 8;
+	bit_color |= (unsigned int)(color->x * 255) << 16;
+	canvas[y * SCREEN_WIDTH + x] = bit_color;
 }
 
 /**
@@ -41,6 +41,7 @@ static void createViewVector(struct Ray *__restrict ray, short x, short y)
 	ray->direction.z = 1;
 	ray->direction.x = (float)x / (float)SCREEN_WIDTH;
 	ray->direction.y = (float)y / (float)SCREEN_HEIGHT;
+	ray->direction = normalize(ray->direction);
 }
 
 /**
@@ -139,16 +140,35 @@ void tracePath(float3 *__restrict incomingLight,
 	}
 }
 
-__kernel void pathTracer(__global unsigned int *canvas,
-			 __constant struct Sphere *spheres)
+__always_inline static void pathTracer(__global unsigned int *canvas,
+				       __constant struct Sphere *spheres)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
-	float3 pixelColor;
+	float3 pixelColor = FLOAT3(0, 0, 0);
 	unsigned int seed = (x << 12) + y;
 
 	createViewVector(&viewVector, x, y);
 	tracePath(&pixelColor, &viewVector, spheres, &seed);
 	setPixelColor(canvas, x, y, &pixelColor);
+}
+
+__unused __always_inline static void
+testKernel(__global unsigned int *canvas, __constant struct Sphere *spheres)
+{
+	(void)spheres;
+	const short x = get_global_id(0);
+	const short y = get_global_id(1);
+	float cx = (float)x / (float)SCREEN_WIDTH;
+	float cy = (float)y / (float)SCREEN_HEIGHT;
+	float c = cx / 2 + cy / 2;
+	float3 pixelColor = FLOAT3(c, c, c);
+	setPixelColor(canvas, x, y, &pixelColor);
+}
+
+__kernel void kernel(__global unsigned int *canvas,
+		__constant struct Sphere *spheres)
+{
+	pathTracer(canvas, spheres);
 }

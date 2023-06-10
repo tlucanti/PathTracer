@@ -6,6 +6,9 @@
 #include <climits>
 #include <cmath>
 
+#define EXTERN_C extern "C" {
+#define EXTERN_C_END }
+
 #define __global
 #define __kernel
 #define __constant
