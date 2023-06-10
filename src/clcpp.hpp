@@ -10,7 +10,11 @@
 #define __kernel
 #define __constant
 
-#define FLOAT3(x, y, z) (float3){x, y, z}
+#define FLOAT3(x, y, z) \
+	(float3)        \
+	{               \
+		x, y, z \
+	}
 
 using std::max;
 using std::min;
@@ -21,7 +25,7 @@ struct __dimention_manager {
 	int y;
 };
 
-inline __dimention_manager __dim {0, 0};
+inline __dimention_manager __dim{ 0, 0 };
 
 unsigned int get_global_id(unsigned int dim)
 {
@@ -39,31 +43,38 @@ struct float3 {
 	float y;
 	float z;
 
-	float3 operator -() const {
-		return {-x, -y, -z};
+	float3 operator-() const
+	{
+		return { -x, -y, -z };
 	}
 
-	float3 operator +(float3 f) const {
-		return {x + f.x, y + f.y, z + f.z};
+	float3 operator+(float3 f) const
+	{
+		return { x + f.x, y + f.y, z + f.z };
 	}
 
-	float3 operator -(float3 f) const {
-		return {x - f.x, y - f.y, z - f.z};
+	float3 operator-(float3 f) const
+	{
+		return { x - f.x, y - f.y, z - f.z };
 	}
 
-	float3 operator *(float f) const {
-		return {x * f, y * f, z * f};
+	float3 operator*(float f) const
+	{
+		return { x * f, y * f, z * f };
 	}
 
-	void operator +=(float3 f) {
+	void operator+=(float3 f)
+	{
 		x += f.x, y += f.y, z += f.z;
 	}
 
-	void operator *=(float f) {
+	void operator*=(float f)
+	{
 		x *= f, y *= f, z *= f;
 	}
 
-	void imul(float3 f) {
+	void imul(float3 f)
+	{
 		x *= f.x, y *= f.y, z *= f.z;
 	}
 };

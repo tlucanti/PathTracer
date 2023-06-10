@@ -30,7 +30,7 @@ context_t create_gl_context(device_t device)
 	err = clGetPlatformIDs(1, &platform, NULL);
 	cl_panic_on(err, "clGetPlatformIDs", err);
 
-        properties[0] = CL_GL_CONTEXT_KHR;
+	properties[0] = CL_GL_CONTEXT_KHR;
 	properties[1] = (cl_context_properties)glXGetCurrentContext();
 
 	properties[2] = CL_GLX_DISPLAY_KHR;
@@ -45,7 +45,7 @@ context_t create_gl_context(device_t device)
 	context = clCreateContext(properties, 1, &dev, NULL, NULL, &err);
 	cl_panic_on(err, "clCreateContext", err);
 
-	return (context_t){ .__context=context };
+	return (context_t){ .__context = context };
 }
 
 #endif /* _CL_GL_H */

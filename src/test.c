@@ -6,16 +6,17 @@
 
 void cl_test()
 {
-	int a1[] = {0, 1, 2, 3, 4};
-	int a2[] = {5, 6, 7, 8, 9};
+	int a1[] = { 0, 1, 2, 3, 4 };
+	int a2[] = { 5, 6, 7, 8, 9 };
 	size_t size = sizeof(a1);
 
 	device_t device = create_device(gpu_type);
 	context_t context = create_context(device);
-	kernel_t kernel = create_kernel(device, context,
-			//"#include <source/path_tracer.cl>\n#define V 1", "pathTracer");
-			"#include <source/array_sum.cl>\n#define V 2",
-			"array_sum", "-I.");
+	kernel_t kernel = create_kernel(
+		device, context,
+		//"#include <source/path_tracer.cl>\n#define V 1", "pathTracer");
+		"#include <source/array_sum.cl>\n#define V 2", "array_sum",
+		"-I.");
 	queue_t queue = create_queue(context, device);
 
 	buffer_t b1 = create_buffer(context, read_write, size);
@@ -41,7 +42,8 @@ void cl_test()
 void glfw_test()
 {
 	window_t window = create_window(800, 600);
-	while (window_opened(window));
+	while (window_opened(window))
+		;
 }
 
 void gl_test()
@@ -58,9 +60,12 @@ void direct_cl_test()
 	render_buffer_t rbo = create_rbo();
 	window_t window = create_window(800, 600);
 
-	buffer_t buffer = create_buffer_from_rbo(context, read_write, rbo.__rbo_id);
+	buffer_t buffer =
+		create_buffer_from_rbo(context, read_write, rbo.__rbo_id);
 
-	(void)window; (void)queue; (void)buffer;
+	(void)window;
+	(void)queue;
+	(void)buffer;
 }
 
 int main()

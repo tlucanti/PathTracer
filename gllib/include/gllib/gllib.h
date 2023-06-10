@@ -30,4 +30,3 @@ bool window_opened(window_t window);
 render_buffer_t create_rbo();
 
 #endif /* _GLLIB_GLLIB_H */
-

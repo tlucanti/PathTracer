@@ -21,7 +21,7 @@ __always_inline static void setPixelColor(__global unsigned int *canvas,
 	bit_color = (unsigned int)(color->z * 255);
 	bit_color |= (unsigned int)(color->y * 255) >> 8;
 	bit_color |= (unsigned int)(color->x * 255) >> 16;
-	canvas[(y) * SCREEN_WIDTH + (x)] = bit_color;
+	canvas[(y)*SCREEN_WIDTH + (x)] = bit_color;
 }
 
 /**
