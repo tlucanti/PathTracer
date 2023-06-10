@@ -18,6 +18,7 @@ class FLOAT3_SEED(ctypes.Structure):
 
 def distribution(name, array):
 	plt.title(name)
+	plt.grid()
 	sns.kdeplot(array)
 	plt.show()
 
@@ -25,11 +26,13 @@ def distribution3d(name, array):
 	fig = plt.figure()
 	plt.title(name)
 	ax = fig.add_subplot(projection='3d')
-	ax.scatter(array[0], array[1], array[2])
+	ax.scatter(array[:, 0], array[:, 1], array[:, 2])
 	plt.show()
 
 def nextRandomInt(times, seed):
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr._call_nextRandomInt.argtypes = [ctypes.c_uint]
+	tr._call_nextRandomInt.restype = ctypes.c_uint
 
 	array = np.zeros(times, dtype=int)
 	for i in range(times):
@@ -40,10 +43,12 @@ def nextRandomInt(times, seed):
 
 def nextRandomFloat(times, seed):
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr._call_nextRandomFloat.argtypes = [ctypes.c_uint]
+	tr._call_nextRandomFloat.restype = FLOAT_SEED
 
 	array = np.zeros(times)
 	for i in range(times):
-		res = FLOAT_SEED(tr._call_nextRandomFloat(seed))
+		res = tr._call_nextRandomFloat(seed)
 		seed = res.seed
 		array[i] = res.number
 
@@ -51,10 +56,12 @@ def nextRandomFloat(times, seed):
 
 def nextRandomFloatNeg(times, seed):
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr._call_nextRandomFloatNeg.argtypes = [ctypes.c_uint]
+	tr._call_nextRandomFloatNeg.restype = FLOAT_SEED
 
 	array = np.zeros(times)
 	for i in range(times):
-		res = FLOAT_SEED(tr._call_nextRandomFloatNeg(seed))
+		res = tr._call_nextRandomFloatNeg(seed)
 		seed = res.seed
 		array[i] = res.number
 
@@ -62,10 +69,12 @@ def nextRandomFloatNeg(times, seed):
 
 def randomDirection(times, seed):
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr._call_randomDirection.argtypes = [ctypes.c_uint]
+	tr._call_randomDirection.restype = FLOAT3_SEED
 
 	array = np.zeros((times, 3))
 	for i in range(times):
-		res = FLOAT3_SEED(tr._call_randomDirection(seed))
+		res = tr._call_randomDirection(seed)
 		seed = res.seed
 		array[i][0] = res.x
 		array[i][1] = res.y
@@ -75,10 +84,12 @@ def randomDirection(times, seed):
 
 def randomHemiSphere(times, seed):
 	tr = ctypes.CDLL('./pathtracer.so')
+	tr._call_randomHemiSphere.argtypes = [ctypes.c_uint]
+	tr._call_randomHemiSphere.restype = FLOAT3_SEED
 
 	array = np.zeros((times, 3))
 	for i in range(times):
-		res = FLOAT3_SEED(tr._call_randomHemiSphere(seed))
+		res = tr._call_randomHemiSphere(seed, 0, 1, 0)
 		seed = res.seed
 		array[i][0] = res.x
 		array[i][1] = res.y
@@ -90,8 +101,8 @@ def main():
 	#nextRandomInt(10000, 123)
 	#nextRandomFloat(10000, 123)
 	#nextRandomFloatNeg(10000, 123)
-	randomDirection(10000, 123)
-	randomHemiSphere(10000, 123)
+	randomDirection(5000, 123123)
+	randomHemiSphere(5000, 121343)
 
 if __name__ == '__main__':
 	main()
