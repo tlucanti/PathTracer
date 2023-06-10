@@ -3,10 +3,27 @@ include .config
 
 all: py
 
+
 py:
 	clang++ \
 		-Wall -Wextra -Werror \
 		-fdiagnostics-color=always \
+		-O3 -std=c++2a \
+		-fPIC -shared -o pathtracer.so \
+		-I . \
+		-I source \
+		-I src \
+		-D __clcpp__ \
+		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
+		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
+		-D DEFINED_SCREEN_SIZE \
+		src/test.cpp
+
+validate:
+	clang++ \
+		-Wall -Wextra -Werror \
+		-fdiagnostics-color=always \
+		-fno-inline -fno-omit-frame-pointer \
 		-O0 -g3 -std=c++2a \
 		-fPIC -shared -o pathtracer.so \
 		-I . \
@@ -16,6 +33,7 @@ py:
 		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
 		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
 		-D DEFINED_SCREEN_SIZE \
+		-D NO_INLINE \
 		src/test.cpp
 
 cpp:
@@ -27,6 +45,9 @@ cpp:
 		-I source \
 		-I src \
 		-D __clcpp__ \
+		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
+		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
+		-D DEFINED_SCREEN_SIZE \
 		src/test.cpp
 
 libcl:

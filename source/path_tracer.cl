@@ -2,7 +2,9 @@
 #include <common.cl>
 #include <random.cl>
 
-#define SPHERES_NUM 1
+EXTERN_C
+
+#define SPHERES_NUM 2
 
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
@@ -12,9 +14,9 @@
  * @param y coordinate in color buffer
  * @param color rgb color with float [0, 1] color intensity
  */
-__always_inline static void setPixelColor(__global unsigned int *canvas,
-					  unsigned short x, unsigned short y,
-					  const float3 *__restrict color)
+__always_inline void setPixelColor(__global unsigned int *canvas,
+				   unsigned short x, unsigned short y,
+				   const float3 *__restrict color)
 {
 	unsigned int bit_color;
 
@@ -33,7 +35,7 @@ __always_inline static void setPixelColor(__global unsigned int *canvas,
  * @param x position of pixel on the screen
  * @param y position of pixel on the screen
  */
-static void createViewVector(struct Ray *__restrict ray, short x, short y)
+void createViewVector(struct Ray *__restrict ray, short x, short y)
 {
 	ray->origin = FLOAT3(0, 0, 0);
 	x -= SCREEN_WIDTH / 2;
@@ -68,17 +70,20 @@ bool intersectSphere(float *__restrict hitDistance,
 	if (discriminant < EPS) {
 		return false;
 	}
-	discriminant = sqrt(discriminant);
 
+	discriminant = sqrt(discriminant);
 	float x1 = (-b + discriminant) / (2 * a); // ! compute `2 * a` before
 	float x2 = (-b - discriminant) / (2 * a); // ! compute `2 * a` before
 
-	float farestRoot = max(x1, x2);
-	if (farestRoot < EPS) {
+	float closestRoot = min(x1, x2);
+	if (closestRoot < EPS) {
+		closestRoot = max(x1, x2);
+	}
+	if (closestRoot < EPS) {
 		return false;
 	}
 
-	*hitDistance = min(x1, x2);
+	*hitDistance = closestRoot;
 	return true;
 }
 
@@ -116,32 +121,35 @@ void intersectAllSpheres(const struct Ray *__restrict viewVector,
 	hitInfo->hitPoint =
 		viewVector->origin + viewVector->direction * closestHit;
 	hitInfo->normal = hitInfo->hitPoint - closestSphere->position;
-	hitInfo->normal *= (1 / closestSphere->radius);
-	hitInfo->emissionStrength = 1;
+	hitInfo->normal = normalize(hitInfo->normal); // ! divide by radius
+	hitInfo->emissionStrength = closestSphere->emissionStrength;
 }
 
 void tracePath(float3 *__restrict incomingLight,
 	       struct Ray *__restrict viewVector, sphere_t *__restrict spheres,
 	       unsigned int *seed)
 {
-	float3 rayColorIntensity = FLOAT3(1, 1, 1);
+	float3 rayColor = FLOAT3(1, 1, 1);
 	struct HitInfo hitInfo;
 
-	for (int i = 0; i < TRACE_BOUNCE_COUNT; ++i) {
+	for (int i = 0; i <= TRACE_BOUNCE_COUNT; ++i) {
 		intersectAllSpheres(viewVector, &hitInfo, spheres);
 		if (!hitInfo.didHit) {
 			break;
 		}
-		*incomingLight += hitInfo.hitColor * hitInfo.emissionStrength;
-		vec_imul(&rayColorIntensity, &hitInfo.hitColor);
+		float3 emittedLight =
+			hitInfo.hitColor * hitInfo.emissionStrength;
+		*incomingLight += vec_mul(emittedLight, rayColor);
+		rayColor = vec_mul(rayColor, hitInfo.hitColor);
 
 		viewVector->origin = hitInfo.hitPoint;
 		randomHemiSphere(&hitInfo.normal, &viewVector->direction, seed);
+		// ! dont run last two lines in the last iteration of loop
 	}
 }
 
-__always_inline static void pathTracer(__global unsigned int *canvas,
-				       __constant struct Sphere *spheres)
+__always_inline void pathTracer(__global unsigned int *canvas,
+				__constant struct Sphere *spheres)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
@@ -154,8 +162,8 @@ __always_inline static void pathTracer(__global unsigned int *canvas,
 	setPixelColor(canvas, x, y, &pixelColor);
 }
 
-__unused __always_inline static void
-testKernel(__global unsigned int *canvas, __constant struct Sphere *spheres)
+__unused __always_inline void testKernel(__global unsigned int *canvas,
+					 __constant struct Sphere *spheres)
 {
 	(void)spheres;
 	const short x = get_global_id(0);
@@ -168,7 +176,9 @@ testKernel(__global unsigned int *canvas, __constant struct Sphere *spheres)
 }
 
 __kernel void kernel(__global unsigned int *canvas,
-		__constant struct Sphere *spheres)
+		     __constant struct Sphere *spheres)
 {
 	pathTracer(canvas, spheres);
 }
+
+EXTERN_C_END

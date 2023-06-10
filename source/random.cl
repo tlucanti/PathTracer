@@ -4,6 +4,8 @@
 
 #include <common.cl>
 
+EXTERN_C
+
 #ifndef RAND_MAX
 #define RAND_MAX UINT_MAX
 #endif /* RAND_MAX */
@@ -18,8 +20,7 @@
  *
  * TODO: validate distribution
  */
-__always_inline __must_check static unsigned int
-nextRandomInt(unsigned int prev)
+__always_inline __must_check unsigned int nextRandomInt(unsigned int prev)
 {
 	return prev * 0x5DEECE66D + 0xB;
 }
@@ -35,7 +36,7 @@ nextRandomInt(unsigned int prev)
  *
  * TODO: validate distribution
  */
-__always_inline __must_check static float
+__always_inline __must_check float
 nextRandomFloat(unsigned int *__restrict seed)
 {
 	*seed = nextRandomInt(*seed);
@@ -51,7 +52,7 @@ nextRandomFloat(unsigned int *__restrict seed)
  *
  * TODO: validate distribution
  */
-__always_inline __must_check static float
+__always_inline __must_check float
 nextRandomFloatNeg(unsigned int *__restrict seed)
 {
 	*seed = nextRandomInt(*seed);
@@ -68,12 +69,12 @@ nextRandomFloatNeg(unsigned int *__restrict seed)
  *
  * TODO: validate distribution
  */
-static inline void randomDirection(float3 *__restrict direction,
-				   unsigned int *__restrict seed)
+__inline void randomDirection(float3 *__restrict direction,
+			      unsigned int *__restrict seed)
 {
-	direction->x = nextRandomFloat(seed);
-	direction->y = nextRandomFloat(seed);
-	direction->z = nextRandomFloat(seed);
+	direction->x = nextRandomFloatNeg(seed);
+	direction->y = nextRandomFloatNeg(seed);
+	direction->z = nextRandomFloatNeg(seed);
 	*direction = normalize(*direction);
 }
 
@@ -88,13 +89,15 @@ static inline void randomDirection(float3 *__restrict direction,
  *
  * TODO: validate distribution
  */
-static inline void randomHemiSphere(const float3 *__restrict normal,
-				    float3 *__restrict direction,
-				    unsigned int *__restrict seed)
+__inline void randomHemiSphere(const float3 *__restrict normal,
+			       float3 *__restrict direction,
+			       unsigned int *__restrict seed)
 {
 	randomDirection(direction, seed);
 	if (dot(*direction, *normal) < 0)
 		*direction = -(*direction);
 }
+
+EXTERN_C_END
 
 #endif /* RANDOM_CL */

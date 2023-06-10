@@ -1,44 +1,57 @@
 
 #ifndef COMMON_CL
-#define COMMON_CL
+# define COMMON_CL
 
-#define EPS 1e-5
+# define EPS 1e-2
 
-#ifndef DEFINED_SCREEN_SIZE
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-#endif
+# ifndef DEFINED_SCREEN_SIZE
+#  define SCREEN_WIDTH 800
+#  define SCREEN_HEIGHT 600
+# endif
 
-#define TRACE_BOUNCE_COUNT 1
+# define TRACE_BOUNCE_COUNT 1
 
-#ifndef __always_inline
-#define __always_inline inline __attribute__((__always_inline__))
-#endif /* __always_inline */
+# ifdef NO_INLINE
+#  undef __always_inline
+#  undef __inline
+#  define __always_inline
+#  define __inline
+# else
+#  ifndef __always_inline
+#   define __always_inline inline __attribute__((__always_inline__))
+#  endif
+#  ifndef __inline
+#   define __inline inline
+#  endif
+# endif /* NO_INLINE */
 
-#ifndef __must_check
-#define __must_check __attribute__((__warn_unused_result__))
-#endif
+# ifndef __must_check
+#  define __must_check __attribute__((__warn_unused_result__))
+# endif
 
-#ifndef __unused
-#define __unused __attribute__((__unused__))
-#endif
+# ifndef __unused
+#  define __unused __attribute__((__unused__))
+# endif
 
-#ifdef __clcpp__
-#include <clcpp.hpp>
-#define vec_imul(a, b) vec_imul_arch(a, b)
-#else
-#define FLOAT3(x, y, z) (float3)(x, y, z)
-#define vec_imul(a, b) *(a) *= *(b)
-#endif /* __clcpp__ */
+# define EXTERN_C extern "C" {
+# define EXTERN_C_END }
 
-#define RED FLOAT3(1, 0, 0)
-#define GREEN FLOAT3(0, 1, 0)
-#define BLUE FLOAT3(0, 0, 1)
-#define CYAN FLOAT3(0, 1, 1)
-#define PURPLE FLOAT3(1, 0, 1)
-#define YELLOW FLOAT3(1, 1, 0)
-#define WHITE FLOAT3(1, 1, 1)
-#define BLACK FLOAT3(0, 0, 0)
+# ifdef __clcpp__
+#  include <clcpp.hpp>
+#  define vec_mul(a, b) vec_mul_arch(a, b)
+# else
+#  define FLOAT3(x, y, z) (float3)(x, y, z)
+#  define vec_imul(a, b) ((a) * (b))
+# endif /* __clcpp__ */
+
+# define RED FLOAT3(1, 0, 0)
+# define GREEN FLOAT3(0, 1, 0)
+# define BLUE FLOAT3(0, 0, 1)
+# define CYAN FLOAT3(0, 1, 1)
+# define PURPLE FLOAT3(1, 0, 1)
+# define YELLOW FLOAT3(1, 1, 0)
+# define WHITE FLOAT3(1, 1, 1)
+# define BLACK FLOAT3(0, 0, 0)
 
 struct Sphere {
 	float3 color;

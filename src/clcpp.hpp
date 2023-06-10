@@ -6,9 +6,6 @@
 #include <climits>
 #include <cmath>
 
-#define EXTERN_C extern "C" {
-#define EXTERN_C_END }
-
 #define __global
 #define __kernel
 #define __constant
@@ -76,35 +73,35 @@ struct float3 {
 		x *= f, y *= f, z *= f;
 	}
 
-	void imul(float3 f)
+	float3 mul(float3 f)
 	{
-		x *= f.x, y *= f.y, z *= f.z;
+		return { x * f.x, y * f.y, z * f.z };
 	}
 };
 
-__must_check inline float dot(float3 a, float3 b)
+__must_check __inline float dot(float3 a, float3 b)
 {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-__must_check inline float square(float x)
+__must_check __inline float square(float x)
 {
 	return x * x;
 }
 
-__must_check inline float length(float3 vector)
+__must_check __inline float length(float3 vector)
 {
 	return sqrt(dot(vector, vector));
 }
 
-__must_check inline float3 normalize(float3 vector)
+__must_check __inline float3 normalize(float3 vector)
 {
 	return vector * (1 / length(vector));
 }
 
-inline void vec_imul_arch(float3 *a, float3 *b)
+__inline float3 vec_mul_arch(float3 a, float3 b)
 {
-	a->imul(*b);
+	return a.mul(b);
 }
 
 #endif /* CLCPP_HPP */
