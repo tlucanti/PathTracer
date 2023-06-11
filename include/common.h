@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef __always_inline
 #define __always_inline inline __attribute__((__always_inline__))
@@ -21,6 +22,8 @@
 #ifndef static_assert
 #define static_assert _Static_assert
 #endif
+
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #define unlikely(expr) __builtin_expect(!!(expr), 0)

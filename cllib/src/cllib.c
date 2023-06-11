@@ -2,16 +2,17 @@
 #include <cllib/cllib.h>
 #include <cllib/common.h>
 
-device_t create_device(enum device_type type)
+cl_platform_id __create_platform(void)
 {
-	cl_platform_id platform;
+	static cl_platform_id platform;
 	cl_uint num_platforms;
 
-	cl_device_id dev;
-	cl_uint num_devices;
-
+	static bool platform_ready = false;
 	cl_int err;
 
+	if (platform_ready) {
+		return platform;
+	}
 	err = clGetPlatformIDs(0, NULL, &num_platforms);
 	cl_panic_on(err, "clGetPlatformIDs", err);
 	if (num_platforms == 0) {
@@ -21,7 +22,19 @@ device_t create_device(enum device_type type)
 	}
 	err = clGetPlatformIDs(1, &platform, NULL);
 	cl_panic_on(err, "clGetPlatformIDs", err);
+	return platform;
+}
 
+device_t create_device(enum device_type type)
+{
+	cl_platform_id platform;
+
+	cl_device_id dev;
+	cl_uint num_devices;
+
+	cl_int err;
+
+	platform = __create_platform();
 	err = clGetDeviceIDs(platform, type, 0, NULL, &num_devices);
 	cl_panic_on(err, "clGetDeviceIDs", err);
 	if (num_devices == 0) {
@@ -35,14 +48,20 @@ device_t create_device(enum device_type type)
 	return (device_t){ .__device = dev };
 }
 
-inline context_t create_context(device_t device)
+__always_inline context_t create_context(device_t device)
+{
+	return create_context_with_props(device, NULL);
+}
+
+inline context_t create_context_with_props(device_t device,
+					   const context_props *properties)
 {
 	cl_context context;
 	cl_device_id dev;
 	cl_int err;
 
 	dev = device.__device;
-	context = clCreateContext(NULL, 1, &dev, NULL, NULL, &err);
+	context = clCreateContext(properties, 1, &dev, NULL, NULL, &err);
 	cl_panic_on(err, "clCreateContext", err);
 
 	return (context_t){ .__context = context };

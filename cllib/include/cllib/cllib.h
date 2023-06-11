@@ -43,8 +43,12 @@ enum device_type {
 	gpu_type = CL_DEVICE_TYPE_GPU
 };
 
+typedef cl_context_properties context_props;
+
 device_t create_device(enum device_type type);
 context_t create_context(device_t device);
+context_t create_context_with_props(device_t device,
+				    const context_props *properties);
 kernel_t create_kernel(device_t device, context_t context, const char *source,
 		       const char *kernel_name, const char *options);
 queue_t create_queue(context_t context, device_t device);
@@ -55,10 +59,6 @@ void fill_buffer(queue_t queue, buffer_t buffer, size_t size, void *data,
 		 bool blocking_write);
 void dump_buffer(queue_t queue, buffer_t buffer, size_t size, void *data,
 		 bool blocking_read);
-void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index, size_t arg_size,
-		      void *arg_value);
-void __run_kernel(cl_command_queue queue, cl_kernel kernel, unsigned int h,
-		  unsigned int w);
 void flush_queue(queue_t queue);
 
 #define set_kernel_arg(kernel, arg)                                            \
@@ -74,5 +74,11 @@ void flush_queue(queue_t queue);
 		__run_kernel(queue.__queue, kernel.__kernel, w, h); \
 		kernel.__arg = 0;                                   \
 	} while (false)
+
+void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index, size_t arg_size,
+		      void *arg_value);
+void __run_kernel(cl_command_queue queue, cl_kernel kernel, unsigned int h,
+		  unsigned int w);
+cl_platform_id __create_platform(void);
 
 #endif /* _CLLIB_CLLIB_H */
