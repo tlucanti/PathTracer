@@ -40,6 +40,10 @@
 		}                     \
 	} while (false)
 
+#define __native_word(t)                                            \
+	(sizeof(t) == sizeof(char) || sizeof(t) == sizeof(short) || \
+	 sizeof(t) == sizeof(int) || sizeof(t) == sizeof(long))
+
 __cold __noreturn void __panic(const char *msg, const char *file,
 			       unsigned long line);
 __cold void __warn(const char *msg, const char *file, unsigned long line);

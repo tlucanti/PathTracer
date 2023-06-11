@@ -73,7 +73,6 @@ static GLuint __init_shaders()
 	vlen = strlen(vert_text);
 	flen = strlen(frag_text);
 
-	printf("%p\n", glShaderSource);
 	glShaderSource(vertex, 1, &vert_text, &vlen);
 	glShaderSource(fragment, 1, &frag_text, &flen);
 
@@ -143,8 +142,13 @@ static GLuint __create_ibo()
 	return ibo;
 }
 
+typedef struct {
+	GLuint __program;
+	GLuint __texture;
+	GLuint __vao;
+} shader_t;
 
-static __inline GLuint create_texture(unsigned int width, unsigned int height)
+static __inline shader_t create_shader(unsigned int width, unsigned int height)
 {
 	if (!gladLoadGL()) {
 		panic("gladLoadGL");
@@ -174,20 +178,22 @@ static __inline GLuint create_texture(unsigned int width, unsigned int height)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBindVertexArray(0);
 
-	(void)program;
-	return texture;
+	return (shader_t){ .__program = program,
+			   .__texture = texture,
+			   .__vao = vao };
 }
 
-static inline buffer_t create_image(context_t context, GLuint texture,
+static inline buffer_t create_image(context_t context, shader_t shader,
 				      enum buffer_type type)
 {
 	cl_context ctx = context.__context;
+	GLuint texture = shader.__texture;
 	cl_mem buffer;
 	cl_int err;
 
 	buffer = clCreateFromGLTexture(ctx, type, GL_TEXTURE_2D, 0, texture,
 				       &err);
-	cl_panic_on(err, "GL_TEXTURE_2D", err);
+	cl_panic_on(err, "clCreateFromGLTexture", err);
 
 	return (buffer_t){ .__buffer = buffer };
 }

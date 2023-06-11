@@ -101,7 +101,9 @@ kernel_t create_kernel(device_t device, context_t context, const char *source,
 
 	kernel = clCreateKernel(program, kernel_name, &err);
 	cl_panic_on(err, "clCreateKernel", err);
-	return (kernel_t){ .__kernel = kernel, .__arg = 0 };
+	return (kernel_t){
+		.__kernel = kernel, .__arg = 0, .__width = -1, .__height = -1
+	};
 };
 
 inline queue_t create_queue(context_t context, device_t device)

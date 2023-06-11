@@ -61,8 +61,9 @@ unsigned int *run()
 
 	set_kernel_arg(kernel, canvas);
 	set_kernel_arg(kernel, sp);
+	set_kernel_size(kernel, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	run_kernel(queue, kernel, SCREEN_WIDTH, SCREEN_HEIGHT);
+	run_kernel(queue, kernel);
 
 	dump_buffer(queue, canvas, sizeof(g_canvas), g_canvas, true);
 	flush_queue(queue);

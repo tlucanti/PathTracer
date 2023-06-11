@@ -22,6 +22,8 @@ typedef struct {
 typedef struct {
 	cl_kernel __kernel;
 	unsigned int __arg;
+	unsigned int __width;
+	unsigned int __height;
 } kernel_t;
 
 typedef struct {
@@ -63,16 +65,24 @@ void flush_queue(queue_t queue);
 
 #define set_kernel_arg(kernel, arg)                                            \
 	do {                                                                   \
-		static_assert(sizeof(arg) <= 8,                                \
+		static_assert(__native_word(arg) ||                            \
+				      sizeof(arg) == sizeof(cl_mem),           \
 			      "structures in kernel args are not allowed");    \
 		__set_kernel_arg(kernel.__kernel, kernel.__arg++, sizeof(arg), \
 				 &arg);                                        \
 	} while (false)
 
-#define run_kernel(queue, kernel, w, h)                             \
-	do {                                                        \
-		__run_kernel(queue.__queue, kernel.__kernel, w, h); \
-		kernel.__arg = 0;                                   \
+#define set_kernel_size(kernek, width, height) \
+	do {                                   \
+		kernel.__width = width;        \
+		kernel.__height = height;      \
+	} while (false)
+
+#define run_kernel(queue, kernel)                                            \
+	do {                                                                 \
+		__run_kernel(queue.__queue, kernel.__kernel, kernel.__width, \
+			     kernel.__height);                               \
+		kernel.__arg = 0;                                            \
 	} while (false)
 
 void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index, size_t arg_size,

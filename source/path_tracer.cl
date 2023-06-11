@@ -8,7 +8,7 @@
 EXTERN_C
 
 #define TRACE_BOUNCE_COUNT 10
-#define RAYS_PER_PIXEL 500
+#define RAYS_PER_PIXEL 100
 
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
@@ -184,17 +184,20 @@ __unused __always_inline void testKernel(__global unsigned int *canvas,
 	(void)spheres;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
-	float cx = (float)x / (float)SCREEN_WIDTH;
-	float cy = (float)y / (float)SCREEN_HEIGHT;
-	float c = cx / 2 + cy / 2;
-	float3 pixelColor = FLOAT3(c, c, c);
-	setPixelColor(canvas, x, y, &pixelColor);
+	struct Ray vec;
+
+	createViewVector(&vec, x, y);
+	vec.direction.x = fabs(vec.direction.x) * 2;
+	vec.direction.y = fabs(vec.direction.y) * 2;
+	vec.direction.z = fabs(vec.direction.z) * 0.5;
+	setPixelColor(canvas, x, y, &vec.direction);
 }
 
 __kernel void runKernel(__global unsigned int *canvas,
 			__constant struct Sphere *spheres)
 {
-	pathTracer(canvas, spheres);
+	return;
+	testKernel(canvas, spheres);
 }
 
 EXTERN_C_END

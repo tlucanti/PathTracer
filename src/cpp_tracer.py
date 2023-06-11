@@ -9,6 +9,7 @@ from PIL import Image
 def trace():
 	width = int(os.getenv('SCREEN_WIDTH'))
 	height = int(os.getenv('SCREEN_HEIGHT'))
+	print(width, height)
 
 	tr = ctypes.CDLL('./pathtracer.so')
 	tr.run.argtypes = []
@@ -17,7 +18,7 @@ def trace():
 	tr.end.argtypes = []
 
 	tr.run()
-	array = np.zeros((width, height, 3), dtype='uint8')
+	array = np.zeros((height, width, 3), dtype='uint8')
 	for x in range(width):
 		for y in range(height):
 			color = tr.get(x, y)

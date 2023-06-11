@@ -19,6 +19,7 @@
 using std::max;
 using std::min;
 using std::sqrt;
+using std::abs;
 
 struct __dimention_manager {
 	int x;

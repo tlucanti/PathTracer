@@ -1,13 +1,14 @@
 
 include .config
 
-all: cl
+all: clgl
 
 clgl:
 	clang \
 		-Wall -Wextra -Werror \
 		-fdiagnostics-color=always \
 		-O0 -g3 \
+		-I . \
 		-I include \
 		-I cllib/include \
 		-I winlib/include \
@@ -65,20 +66,6 @@ validate:
 		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
 		-D DEFINED_SCREEN_SIZE \
 		src/test.cpp src/validate.cpp
-
-cpp:
-	clang++ \
-		-Wall -Wextra -Werror \
-		-fdiagnostics-color=always \
-		-O0 -g3 -std=c++2a \
-		-I . \
-		-I source \
-		-I src \
-		-D __clcpp__ \
-		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
-		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
-		-D DEFINED_SCREEN_SIZE \
-		src/test.cpp
 
 libcl:
 	mkdir -p build
