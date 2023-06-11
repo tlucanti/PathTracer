@@ -7,9 +7,8 @@
 
 EXTERN_C
 
-#define SPHERES_NUM 5
 #define TRACE_BOUNCE_COUNT 10
-#define RAYS_PER_PIXEL 100
+#define RAYS_PER_PIXEL 500
 
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
@@ -109,7 +108,7 @@ bool intersectSphere(float *__restrict hitDistance,
  * @param spheres array of inspecting spheres
  */
 void intersectAllSpheres(const struct Ray *__restrict viewVector,
-			 HitInfo *__restrict hitInfo,
+			 struct HitInfo *__restrict hitInfo,
 			 sphere_t *__restrict spheres)
 {
 	float closestHit = INFINITY;
@@ -175,7 +174,7 @@ __always_inline void pathTracer(__global unsigned int *canvas,
 		createViewVector(&viewVector, x, y);
 		tracePath(&pixelColor, &viewVector, spheres, &seed);
 	}
-	pixelColor *= 1.0 / RAYS_PER_PIXEL;
+	pixelColor *= 1.0f / RAYS_PER_PIXEL;
 	setPixelColor(canvas, x, y, &pixelColor);
 }
 
@@ -192,8 +191,8 @@ __unused __always_inline void testKernel(__global unsigned int *canvas,
 	setPixelColor(canvas, x, y, &pixelColor);
 }
 
-__kernel void kernel(__global unsigned int *canvas,
-		     __constant struct Sphere *spheres)
+__kernel void runKernel(__global unsigned int *canvas,
+			__constant struct Sphere *spheres)
 {
 	pathTracer(canvas, spheres);
 }

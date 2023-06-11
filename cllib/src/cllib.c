@@ -190,11 +190,9 @@ inline void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index,
 inline void __run_kernel(cl_command_queue queue, cl_kernel kernel,
 			 unsigned int h, unsigned int w)
 {
-	(void)h;
-	(void)w;
 	cl_int err;
-	size_t local_size[2] = { 8, 1 };
-	size_t global_size[2] = { 8, 1 };
+	size_t global_size[2] = { w, h };
+	size_t *local_size = NULL;
 
 	err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size,
 				     local_size, 0, NULL, NULL);

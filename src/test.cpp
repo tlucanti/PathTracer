@@ -1,4 +1,6 @@
 
+#define SPHERES_NUM 5
+
 #include <source/path_tracer.cl>
 
 EXTERN_C
@@ -37,7 +39,7 @@ void run()
 		__dim.y = y;
 		for (int x = 0; x < SCREEN_WIDTH; ++x) {
 			__dim.x = x;
-			kernel(g_canvas, spheres);
+			runKernel(g_canvas, spheres);
 		}
 	}
 }

@@ -84,11 +84,6 @@ __must_check __inline float dot(float3 a, float3 b)
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-__must_check __inline float square(float x)
-{
-	return x * x;
-}
-
 __must_check __inline float length(float3 vector)
 {
 	return sqrt(dot(vector, vector));

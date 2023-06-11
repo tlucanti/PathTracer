@@ -1,7 +1,7 @@
 
 include .config
 
-all: clgl
+all: cl
 
 clgl:
 	clang \
@@ -32,6 +32,23 @@ py:
 		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
 		-D DEFINED_SCREEN_SIZE \
 		src/test.cpp
+
+cl:
+	clang \
+		-Wall -Wextra -Werror \
+		-fdiagnostics-color=always \
+		-O0 -g3 \
+		-fPIC -shared -o pathtracer.so \
+		-I . \
+		-I include \
+		-I cllib/include \
+		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
+		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
+		-D DEFINED_SCREEN_SIZE \
+		src/test.c \
+		-L build \
+		-lcl -lOpenCL
+
 
 validate:
 	clang++ \

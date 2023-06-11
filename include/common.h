@@ -23,6 +23,9 @@
 #define static_assert _Static_assert
 #endif
 
+#define __STR(x) #x
+#define STR(x) __STR(x)
+
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 #define likely(expr) __builtin_expect(!!(expr), 1)
