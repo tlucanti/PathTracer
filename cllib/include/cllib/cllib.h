@@ -21,9 +21,9 @@ typedef struct {
 
 typedef struct {
 	cl_kernel __kernel;
-	unsigned int __arg;
-	unsigned int __width;
-	unsigned int __height;
+	unsigned short __arg;
+	unsigned short __width;
+	unsigned short __height;
 } kernel_t;
 
 typedef struct {
@@ -72,7 +72,7 @@ void flush_queue(queue_t queue);
 				 &arg);                                        \
 	} while (false)
 
-#define set_kernel_size(kernek, width, height) \
+#define set_kernel_size(kernel, width, height) \
 	do {                                   \
 		kernel.__width = width;        \
 		kernel.__height = height;      \
@@ -87,8 +87,8 @@ void flush_queue(queue_t queue);
 
 void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index, size_t arg_size,
 		      void *arg_value);
-void __run_kernel(cl_command_queue queue, cl_kernel kernel, unsigned int h,
-		  unsigned int w);
+void __run_kernel(cl_command_queue queue, cl_kernel kernel, unsigned int width,
+		  unsigned int height);
 cl_platform_id __create_platform(void);
 
 #endif /* _CLLIB_CLLIB_H */

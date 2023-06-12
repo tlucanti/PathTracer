@@ -18,10 +18,18 @@ EXTERN_C
  * @param y coordinate in color buffer
  * @param color rgb color with float [0, 1] color intensity
  */
-__always_inline void setPixelColor(__global unsigned int *canvas,
+__always_inline void setPixelColor(write_only image2d_t canvas,
 				   unsigned short x, unsigned short y,
 				   const float3 *__restrict color)
 {
+	// TODO: color->x= min(1.0, color->x);
+	// ! make other color cut
+	float4 fcolor = (float4)(color->x, color->y, color->z, 1.0);
+
+	write_imagef(canvas, (int2)(x, y), fcolor);
+	return;
+
+/*
 	unsigned int bit_color;
 
 	unsigned int blue = color->z * 255;
@@ -37,6 +45,7 @@ __always_inline void setPixelColor(__global unsigned int *canvas,
 
 	y = SCREEN_HEIGHT - y - 1;
 	canvas[y * SCREEN_WIDTH + x] = bit_color;
+	*/
 }
 
 /**
@@ -161,7 +170,7 @@ void tracePath(float3 *__restrict incomingLight,
 	}
 }
 
-__always_inline void pathTracer(__global unsigned int *canvas,
+__always_inline void pathTracer(write_only image2d_t canvas,
 				__constant struct Sphere *spheres)
 {
 	struct Ray viewVector;
@@ -178,7 +187,7 @@ __always_inline void pathTracer(__global unsigned int *canvas,
 	setPixelColor(canvas, x, y, &pixelColor);
 }
 
-__unused __always_inline void testKernel(__global unsigned int *canvas,
+__unused __always_inline void testKernel(write_only image2d_t canvas,
 					 __constant struct Sphere *spheres)
 {
 	(void)spheres;
@@ -193,10 +202,9 @@ __unused __always_inline void testKernel(__global unsigned int *canvas,
 	setPixelColor(canvas, x, y, &vec.direction);
 }
 
-__kernel void runKernel(__global unsigned int *canvas,
+__kernel void runKernel(write_only image2d_t canvas,
 			__constant struct Sphere *spheres)
 {
-	return;
 	testKernel(canvas, spheres);
 }
 

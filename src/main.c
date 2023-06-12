@@ -2,6 +2,7 @@
 #include <winlib/winlib.h>
 #include <cllib/cllib.h>
 #include <clgl.h>
+#include <time.h>
 
 typedef cl_float3 float3;
 #define FLOAT3(X, Y, Z)                \
@@ -116,6 +117,22 @@ static buffer_t create_scene(context_t context, queue_t queue)
 	return scene;
 }
 
+static void announce_fps()
+{
+	static struct timespec prev;
+	static int frame = 0;
+	struct timespec cur;
+
+	clock_gettime(CLOCK_REALTIME, &cur);
+	double start = prev.tv_sec + (double)prev.tv_nsec * 1e-9;
+	double end = cur.tv_sec + (double)cur.tv_nsec * 1e-9;
+	if (frame % 100 == 0) {
+		printf("frame: %d, fps: %f\n", frame, 1 / (end - start));
+	}
+	++frame;
+	prev = cur;
+}
+
 int main()
 {
 	char compile_flags[255];
@@ -135,26 +152,22 @@ int main()
 	panic_on(printed == 0 || printed > sizeof(compile_flags),
 		 "buffer overflow");
 	kernel_t kernel = create_kernel(device, context,
-					"#include <source/path_tracer.cl>\n",
+					"#include <source/path_tracer.cl>",
 					"runKernel", compile_flags);
 
 	shader_t shader = create_shader(width, height);
 	buffer_t image = create_image(context, shader, read_write);
 
 	buffer_t scene = create_scene(context, queue);
-	buffer_t b = create_buffer(context, read_write, width * height * sizeof(unsigned int));
-	//set_kernel_arg(kernel, image);
-	set_kernel_arg(kernel, b);
+
+	set_kernel_arg(kernel, image);
 	set_kernel_arg(kernel, scene);
 	set_kernel_size(kernel, width, height);
 
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	(void)queue;
 	while (!glfwWindowShouldClose(window)) {
-
-
 		// process call
 		compute(queue, image, kernel);
 		// render call
@@ -163,12 +176,56 @@ int main()
 		glfwSwapBuffers(window);
 		// poll for events
 		glfwPollEvents();
+
+		announce_fps();
 	}
 
 	glfwDestroyWindow(window);
 
 	glfwTerminate();
 	return 0;
-
-	(void)image;
 }
+
+#if 0
+int _main()
+{
+	char compile_flags[255];
+	size_t printed;
+	unsigned int width, height;
+	GLFWwindow *window = winlib_init(&width, &height);
+
+	device_t device = create_device(gpu_type);
+	context_t context = create_gl_context(device, window);
+	queue_t queue = create_queue(context, device);
+
+	shader_t shader = create_shader(width, height);
+	buffer_t image = create_image(context, shader, read_write);
+
+	printed = sprintf(
+		compile_flags,
+		"-I . -I source "
+		"-D SPHERES_NUM=%d -D SCREEN_WIDTH=%d -D SCREEN_HEIGHT=%d",
+		SPHERES_NUM, width, height);
+	panic_on(printed == 0 || printed > sizeof(compile_flags),
+		 "buffer overflow");
+
+	kernel_t kernel = create_kernel(device, context,
+					"#include <source/path_tracer.cl>",
+					"runKernel", compile_flags);
+
+	buffer_t scene = create_scene(context, queue);
+
+	set_kernel_arg(kernel, image);
+	set_kernel_arg(kernel, scene);
+	set_kernel_size(kernel, width, height);
+
+	run_kernel(queue, kernel);
+
+	flush_queue(queue);
+	printf("done\n");
+
+	glfwDestroyWindow(window);
+	glfwTerminate();
+	return 0;
+}
+#endif

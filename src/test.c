@@ -50,7 +50,7 @@ unsigned int *run()
 	device_t device = create_device(gpu_type);
 	context_t context = create_context(device);
 	kernel_t kernel = create_kernel(device, context,
-					"#include <source/path_tracer.cl>\n",
+					"#include <source/path_tracer.cl>",
 					"runKernel", compile_flags);
 	queue_t queue = create_queue(context, device);
 
