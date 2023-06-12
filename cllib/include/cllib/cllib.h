@@ -65,11 +65,13 @@ void flush_queue(queue_t queue);
 
 #define set_kernel_arg(kernel, arg)                                            \
 	do {                                                                   \
-		static_assert(__native_word(arg) ||                            \
-				      sizeof(arg) == sizeof(cl_mem),           \
-			      "structures in kernel args are not allowed");    \
 		__set_kernel_arg(kernel.__kernel, kernel.__arg++, sizeof(arg), \
 				 &arg);                                        \
+	} while (false)
+
+#define set_kernel_arg_at(kernel, arg, pos)                                 \
+	do {                                                                \
+		__set_kernel_arg(kernel.__kernel, pos, sizeof(arg), &arg);  \
 	} while (false)
 
 #define set_kernel_size(kernel, width, height) \

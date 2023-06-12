@@ -7,8 +7,8 @@
 
 EXTERN_C
 
-#define TRACE_BOUNCE_COUNT 10
-#define RAYS_PER_PIXEL 100
+#define TRACE_BOUNCE_COUNT 2
+#define RAYS_PER_PIXEL 5
 
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
@@ -22,11 +22,10 @@ __always_inline void setPixelColor(write_only image2d_t canvas,
 				   unsigned short x, unsigned short y,
 				   const float3 *__restrict color)
 {
-	// TODO: color->x= min(1.0, color->x);
-	// ! make other color cut
-	float4 fcolor = (float4)(color->x, color->y, color->z, 1.0);
+	float4 fcolor = FLOAT4(color->x, color->y, color->z, 1);
+	int2 coords = INT2(x, SCREEN_HEIGHT - y - 1);
 
-	write_imagef(canvas, (int2)(x, y), fcolor);
+	write_imagef(canvas, coords, fcolor);
 	return;
 
 /*
@@ -57,13 +56,16 @@ __always_inline void setPixelColor(write_only image2d_t canvas,
  * @param x position of pixel on the screen
  * @param y position of pixel on the screen
  */
-void createViewVector(struct Ray *__restrict ray, short x, short y)
+void createViewVector(struct Ray *__restrict ray, short x, short y,
+		      float3 *__restrict position, float3 *__restrict direction)
 {
-	ray->origin = FLOAT3(0, 0, 0);
+	float ratio = (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT;
+
+	ray->origin = *position;
 	x -= SCREEN_WIDTH / 2;
 	y -= SCREEN_HEIGHT / 2;
 	ray->direction.z = 1;
-	ray->direction.x = (float)x / (float)SCREEN_WIDTH;
+	ray->direction.x = (float)x * ratio / (float)SCREEN_WIDTH;
 	ray->direction.y = (float)y / (float)SCREEN_HEIGHT;
 	ray->direction = normalize(ray->direction);
 }
@@ -171,7 +173,8 @@ void tracePath(float3 *__restrict incomingLight,
 }
 
 __always_inline void pathTracer(write_only image2d_t canvas,
-				__constant struct Sphere *spheres)
+				__constant struct Sphere *spheres,
+				float3 position, float3 direction)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
@@ -180,7 +183,8 @@ __always_inline void pathTracer(write_only image2d_t canvas,
 	unsigned int seed = (x << 12) + y;
 
 	for (int i = 0; i < RAYS_PER_PIXEL; ++i) {
-		createViewVector(&viewVector, x, y);
+		createViewVector(&viewVector, x, y, &position,
+				 &direction);
 		tracePath(&pixelColor, &viewVector, spheres, &seed);
 	}
 	pixelColor *= 1.0f / RAYS_PER_PIXEL;
@@ -188,14 +192,15 @@ __always_inline void pathTracer(write_only image2d_t canvas,
 }
 
 __unused __always_inline void testKernel(write_only image2d_t canvas,
-					 __constant struct Sphere *spheres)
+					 __constant struct Sphere *spheres,
+					 float3 position, float3 direction)
 {
 	(void)spheres;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
 	struct Ray vec;
 
-	createViewVector(&vec, x, y);
+	createViewVector(&vec, x, y, &position, &direction);
 	vec.direction.x = fabs(vec.direction.x) * 2;
 	vec.direction.y = fabs(vec.direction.y) * 2;
 	vec.direction.z = fabs(vec.direction.z) * 0.5;
@@ -203,9 +208,10 @@ __unused __always_inline void testKernel(write_only image2d_t canvas,
 }
 
 __kernel void runKernel(write_only image2d_t canvas,
-			__constant struct Sphere *spheres)
+			__constant struct Sphere *spheres, float3 position,
+			float3 direction)
 {
-	testKernel(canvas, spheres);
+	pathTracer(canvas, spheres, position, direction);
 }
 
 EXTERN_C_END

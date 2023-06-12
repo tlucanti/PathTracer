@@ -30,6 +30,8 @@
 #  define vec_mul(a, b) vec_mul_arch(a, b)
 # else
 #  define FLOAT3(x, y, z) (float3)(x, y, z)
+#  define FLOAT4(x, y, z, w) (float4)(x, y, z, w)
+#  define INT2(x, y) (int2)(x, y)
 #  define vec_mul(a, b) ((a) * (b))
 #  define EXTERN_C
 #  define EXTERN_C_END
