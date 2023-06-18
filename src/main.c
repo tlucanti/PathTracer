@@ -12,99 +12,112 @@ typedef cl_float3 float3;
 	}
 #include "source/struct.cl"
 
+#include <linalg.h>
+
 #define SPHERES_NUM 5
 
+struct Camera {
+	float3 position;
+	float alpha;
+	float theta;
+	struct RotateMatrix matrix;
+};
+
 struct tracer_state {
-	struct Ray camera;
-	bool move_forward;
-	bool move_backward;
-	bool move_left;
-	bool move_right;
-	bool move_up;
-	bool move_down;
-	bool look_left;
-	bool look_right;
-	bool look_up;
-	bool look_down;
+	struct Camera camera;
+	float3 move_step;
+	float look_vertical;
+	float look_horizontal;
 	bool exit;
 };
 
 struct tracer_state g_tracer_state = {
-	.camera = { .origin = FLOAT3(0, 0, 0), .direction = FLOAT3(0, 0, 1), },
-	.forward_down = false,
-	.backward_down = false,
-	.right_down = false,
-	.left_down = false,
-	.up_down = false,
-	.down_down = false,
+	.camera = { .position = FLOAT3(0, 0, 0), .alpha = 0, .theta = 0 },
 	.exit = false
 };
 
 #define TRACER_MOVE_STEP 0.1
+#define TRACER_LOOK_STEP (PI / 200.0)
 
 static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 			 int mods)
 {
 	(void)wind;
 	(void)mods;
-	(void)action;
-	printf("action %d, pressed %d, scancode %d\n", action, key, scancode);
+	(void)scancode;
 
-	if (action == GLFW_PRESS || action == GLFW_RELEASE) {
+	if (action == GLFW_PRESS) {
 		switch (key) {
 		case GLFW_KEY_W:
-			g_tracer_state.move_forward = action; break;
+			g_tracer_state.move_step.z = TRACER_MOVE_STEP; break;
 		case GLFW_KEY_S:
-			g_tracer_state.move_backward = action; break;
+			g_tracer_state.move_step.z = -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_A:
-			g_tracer_state.move_left = action; break;
+			g_tracer_state.move_step.x = -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_D:
-			g_tracer_state.move_right = action; break;
+			g_tracer_state.move_step.x = TRACER_MOVE_STEP; break;
 		case GLFW_KEY_SPACE:
-			g_tracer_state.move_up = action; break;
+			g_tracer_state.move_step.y = TRACER_MOVE_STEP; break;
 		case GLFW_KEY_LEFT_CONTROL:
 		case GLFW_KEY_RIGHT_CONTROL:
-			g_tracer_state.move_down = action; break;
-		case GLFW_KEY_ESCAPE:
-			g_tracer_state.exit = action; break;
+			g_tracer_state.move_step.y = -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_UP:
-			g_tracer_state.look_up = action; break ;
+			g_tracer_state.look_vertical = -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_DOWN:
-			g_tracer_state.look_down = action; break ;
+			g_tracer_state.look_vertical = TRACER_LOOK_STEP; break;
 		case GLFW_KEY_LEFT:
-			g_tracer_state.look_left = action; break ;
+			g_tracer_state.look_horizontal = -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
-			g_tracer_state.look_right = action; break ;
+			g_tracer_state.look_horizontal = TRACER_LOOK_STEP; break;
+		case GLFW_KEY_ESCAPE:
+			g_tracer_state.exit = true; break;
+		}
+	} else if (action == GLFW_RELEASE) {
+		switch (key) {
+		case GLFW_KEY_W:
+		case GLFW_KEY_S:
+			g_tracer_state.move_step.z = 0; break;
+		case GLFW_KEY_A:
+		case GLFW_KEY_D:
+			g_tracer_state.move_step.x = 0; break;
+		case GLFW_KEY_SPACE:
+		case GLFW_KEY_LEFT_CONTROL:
+		case GLFW_KEY_RIGHT_CONTROL:
+			g_tracer_state.move_step.y = 0; break;
+		case GLFW_KEY_UP:
+		case GLFW_KEY_DOWN:
+			g_tracer_state.look_vertical = 0; break;
+		case GLFW_KEY_LEFT:
+		case GLFW_KEY_RIGHT:
+			g_tracer_state.look_horizontal = 0; break;
+		case GLFW_KEY_ESCAPE:
+			g_tracer_state.exit = true; break;
 		}
 	}
 }
 
+void move_camera(void)
+{
+	float3 move_step = g_tracer_state.move_step;
+
+	compute_rotation_matrix(&g_tracer_state.camera.matrix,
+				g_tracer_state.camera.alpha,
+				g_tracer_state.camera.theta);
+	rotate_vector(&move_step, &g_tracer_state.camera.matrix);
+	vec_iadd(&g_tracer_state.camera.position, &move_step);
+
+	g_tracer_state.camera.alpha += g_tracer_state.look_horizontal;
+	g_tracer_state.camera.theta += g_tracer_state.look_vertical;
+}
+
 static bool update_tracer_state(void)
 {
-	if (g_tracer_state.forward_down) {
-		g_tracer_state.camera.origin.z += TRACER_MOVE_STEP;
-	}
-	if (g_tracer_state.backward_down) {
-		g_tracer_state.camera.origin.z -= TRACER_MOVE_STEP;
-	}
-	if (g_tracer_state.left_down) {
-		g_tracer_state.camera.origin.x -= TRACER_MOVE_STEP;
-	}
-	if (g_tracer_state.right_down) {
-		g_tracer_state.camera.origin.x += TRACER_MOVE_STEP;
-	}
-	if (g_tracer_state.up_down) {
-		g_tracer_state.camera.origin.y += TRACER_MOVE_STEP;
-	}
-	if (g_tracer_state.down_down) {
-		g_tracer_state.camera.origin.y -= TRACER_MOVE_STEP;
-	}
-
 	if (g_tracer_state.exit) {
 		return true;
-	} else {
-		return false;
 	}
+	move_camera();
+
+	return false;
 }
 
 static void framebuffer_size_callback(GLFWwindow *wind, int width, int height)
@@ -257,8 +270,8 @@ int main()
 			break;
 		}
 
-		set_kernel_arg_at(kernel, g_tracer_state.camera.origin, 2);
-		set_kernel_arg_at(kernel, g_tracer_state.camera.direction, 3);
+		set_kernel_arg_at(kernel, g_tracer_state.camera.position, 2);
+		set_kernel_arg_at(kernel, g_tracer_state.camera.matrix, 3);
 		// process call
 		compute(queue, image, kernel);
 		// render call

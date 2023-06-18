@@ -2,11 +2,10 @@
 #ifndef STRUCT_CL
 # define STRUCT_CL
 
-struct Sphere {
-	float3 color;
-	float3 position;
-	float emissionStrength;
-	float radius; // ! save squared instead
+struct RotateMatrix {
+	float3 row1;
+	float3 row2;
+	float3 row3;
 };
 
 struct Ray {
@@ -20,6 +19,13 @@ struct HitInfo {
 	float3 normal;
 	float emissionStrength;
 	bool didHit;
+};
+
+struct Sphere {
+	float3 color;
+	float3 position;
+	float emissionStrength;
+	float radius; // ! save squared instead
 };
 
 # define RED FLOAT3(1, 0, 0)

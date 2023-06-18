@@ -10,6 +10,25 @@ EXTERN_C
 #define TRACE_BOUNCE_COUNT 2
 #define RAYS_PER_PIXEL 5
 
+
+/**
+ * rotateVector() function applies rotation to vector using precomputed rotation
+ * matrix
+ *
+ * @param vector initial vector, rotated vector will be saved inplace to this
+ * 	pointer
+ * @param matrix rotation matrix
+ */
+__always_inline void rotateVector(float3 *__restrict vector,
+				  const struct RotateMatrix *__restrict matrix)
+{
+
+	float x = dot(matrix->row1, *vector);
+	float y = dot(matrix->row2, *vector);
+	float z = dot(matrix->row3, *vector);
+	*vector = FLOAT3(x, y, z);
+}
+
 /**
  * setPixelColor() sets rgb color of pixel in pixel buffer in given coordinates
  *
@@ -20,9 +39,9 @@ EXTERN_C
  */
 __always_inline void setPixelColor(write_only image2d_t canvas,
 				   unsigned short x, unsigned short y,
-				   const float3 *__restrict color)
+				   float3 color)
 {
-	float4 fcolor = FLOAT4(color->x, color->y, color->z, 1);
+	float4 fcolor = FLOAT4(color.x, color.y, color.z, 1);
 	int2 coords = INT2(x, SCREEN_HEIGHT - y - 1);
 
 	write_imagef(canvas, coords, fcolor);
@@ -57,17 +76,19 @@ __always_inline void setPixelColor(write_only image2d_t canvas,
  * @param y position of pixel on the screen
  */
 void createViewVector(struct Ray *__restrict ray, short x, short y,
-		      float3 *__restrict position, float3 *__restrict direction)
+		      float3 position,
+		      const struct RotateMatrix *__restrict matrix)
 {
 	float ratio = (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT;
 
-	ray->origin = *position;
+	ray->origin = position;
 	x -= SCREEN_WIDTH / 2;
 	y -= SCREEN_HEIGHT / 2;
 	ray->direction.z = 1;
 	ray->direction.x = (float)x * ratio / (float)SCREEN_WIDTH;
 	ray->direction.y = (float)y / (float)SCREEN_HEIGHT;
 	ray->direction = normalize(ray->direction);
+	rotateVector(&ray->direction, matrix);
 }
 
 /**
@@ -173,8 +194,8 @@ void tracePath(float3 *__restrict incomingLight,
 }
 
 __always_inline void pathTracer(write_only image2d_t canvas,
-				__constant struct Sphere *spheres,
-				float3 position, float3 direction)
+				sphere_t *__restrict spheres, float3 position,
+				const struct RotateMatrix *matrix)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
@@ -183,35 +204,35 @@ __always_inline void pathTracer(write_only image2d_t canvas,
 	unsigned int seed = (x << 12) + y;
 
 	for (int i = 0; i < RAYS_PER_PIXEL; ++i) {
-		createViewVector(&viewVector, x, y, &position,
-				 &direction);
+		createViewVector(&viewVector, x, y, position, matrix);
 		tracePath(&pixelColor, &viewVector, spheres, &seed);
 	}
-	pixelColor *= 1.0f / RAYS_PER_PIXEL;
-	setPixelColor(canvas, x, y, &pixelColor);
+	pixelColor *= (float)1.0 / (float)RAYS_PER_PIXEL;
+	setPixelColor(canvas, x, y, pixelColor);
 }
 
 __unused __always_inline void testKernel(write_only image2d_t canvas,
 					 __constant struct Sphere *spheres,
-					 float3 position, float3 direction)
+					 float3 position,
+					 const struct RotateMatrix *matrix)
 {
 	(void)spheres;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
 	struct Ray vec;
 
-	createViewVector(&vec, x, y, &position, &direction);
+	createViewVector(&vec, x, y, position, matrix);
 	vec.direction.x = fabs(vec.direction.x) * 2;
 	vec.direction.y = fabs(vec.direction.y) * 2;
 	vec.direction.z = fabs(vec.direction.z) * 0.5;
-	setPixelColor(canvas, x, y, &vec.direction);
+	setPixelColor(canvas, x, y, vec.direction);
 }
 
 __kernel void runKernel(write_only image2d_t canvas,
 			__constant struct Sphere *spheres, float3 position,
-			float3 direction)
+			struct RotateMatrix matrix)
 {
-	pathTracer(canvas, spheres, position, direction);
+	pathTracer(canvas, spheres, position, &matrix);
 }
 
 EXTERN_C_END
