@@ -37,13 +37,11 @@ def trace():
 	i = 0
 
 	timeit.start()
-	for y in range(height):
-		for x in range(width):
-			color = res[i]
-			i += 1
-			array[y][x][0] = (color >> 16) & 0xFF
-			array[y][x][1] = (color >> 8) & 0xFF
-			array[y][x][2] = color & 0xFF
+	a = np.fromiter(res, dtype=int, count=height * width).reshape((height, width))
+	array = np.zeros((height, width, 3), dtype='uint8')
+	array[:, :, 0] = a >> 16 & 0xFF
+	array[:, :, 1] = a >> 8 & 0xFF
+	array[:, :, 2] = a & 0xFF
 	tr.end()
 	print(end='transfer: ')
 	timeit.end()
