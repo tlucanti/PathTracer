@@ -1,7 +1,7 @@
 
 include .config
 
-all: clgl
+all: py
 
 clgl:
 	clang \
@@ -26,6 +26,7 @@ py:
 		-O3 -std=c++2a \
 		-fPIC -shared -o pathtracer.so \
 		-I . \
+		-I include \
 		-I source \
 		-I src \
 		-D __clcpp__ \

@@ -9,12 +9,13 @@
 #define __global
 #define __kernel
 #define __constant
+#define write_only
 
-#define FLOAT3(x, y, z) \
-	(float3)        \
-	{               \
-		x, y, z \
-	}
+#define FLOAT3(x, y, z) (float3){x, y, z}
+#define FLOAT4(x, y, z, w) (float4){x, y, z, w};
+#define INT2(x, y) (int2){x, y};
+
+typedef unsigned int *image2d_t;
 
 using std::max;
 using std::min;
@@ -80,6 +81,18 @@ struct float3 {
 	}
 };
 
+struct float4 {
+	float x;
+	float y;
+	float z;
+	float w;
+};
+
+struct int2 {
+	int x;
+	int y;
+};
+
 __must_check __inline float dot(float3 a, float3 b)
 {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
@@ -98,6 +111,19 @@ __must_check __inline float3 normalize(float3 vector)
 __inline float3 vec_mul_arch(float3 a, float3 b)
 {
 	return a.mul(b);
+}
+
+__inline void write_imagef(image2d_t canvas, const int2 coords, const float4 fcolor)
+{
+	unsigned int blue = (int)(fcolor.z * 255);
+	unsigned int green = (int)(fcolor.y * 255);
+	unsigned int red = (int)(fcolor.x * 255);
+
+	blue = min(255u, blue);
+	green = min(255u, green) << 8;
+	red = min(255u, red) << 16;
+
+	canvas[coords.y * SCREEN_WIDTH + coords.x] = red | green | blue;
 }
 
 #endif /* CLCPP_HPP */

@@ -2,17 +2,22 @@
 #define SPHERES_NUM 5
 
 #include <source/path_tracer.cl>
+#include <linalg.h>
 
 EXTERN_C
 
 unsigned int *g_canvas = NULL;
 
-void run()
-{
-	g_canvas = (unsigned int *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT *
-					  sizeof(unsigned int));
+struct Camera {
+	float3 position;
+	float alpha;
+	float theta;
+	struct RotateMatrix matrix;
+};
 
-	struct Sphere spheres[SPHERES_NUM];
+static struct Sphere *init_scene(void)
+{
+	static struct Sphere spheres[SPHERES_NUM];
 
 	spheres[0] = { .color = RED,
 		       .position = FLOAT3(-0.3, -0.8, 9),
@@ -35,18 +40,33 @@ void run()
 		       .emissionStrength = 0.0,
 		       .radius = 0.7 };
 
-	for (int y = 0; y < SCREEN_HEIGHT; ++y) {
-		__dim.y = y;
-		for (int x = 0; x < SCREEN_WIDTH; ++x) {
-			__dim.x = x;
-			runKernel(g_canvas, spheres);
-		}
-	}
+	return spheres;
 }
 
-unsigned int get(unsigned int x, unsigned int y)
+unsigned int *run()
 {
-	return g_canvas[y * SCREEN_WIDTH + x];
+	g_canvas = (unsigned int *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT *
+					  sizeof(unsigned int));
+	struct Sphere *scene = init_scene();
+	struct Camera camera = { .position = FLOAT3(0, 0, 0),
+				 .alpha = 0,
+				 .theta = 0 };
+
+	compute_rotation_matrix(&camera.matrix, camera.alpha, camera.theta);
+	printf("   ");
+	for (int y = 0; y < SCREEN_HEIGHT; ++y) {
+		__dim.y = y;
+		printf("\b\b\b%2d%%", y * 100 / SCREEN_HEIGHT);
+		fflush(stdout);
+		for (int x = 0; x < SCREEN_WIDTH; ++x) {
+			__dim.x = x;
+			runKernel(g_canvas, scene, camera.position,
+				  camera.matrix);
+		}
+	}
+	printf("\b\b\b");
+	fflush(stdout);
+	return g_canvas;
 }
 
 void end()

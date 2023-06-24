@@ -2,12 +2,13 @@
 #ifndef LINALG_H
 #define LINALG_H
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include <CL/cl.h>
 #include <math.h>
 
-typedef cl_float3 float3;
 void sincosf(float x, float *sin, float *cos);
 #define sincos sincosf
 
