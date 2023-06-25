@@ -14,30 +14,40 @@ void sincosf(float x, float *sin, float *cos);
 
 #define PI M_PI
 
-__always_inline float dot(const float3 *a, const float3 *b)
+__always_inline float dot(float3 a, float3 b)
 {
-	return a->x * b->x + a->y * b->y + a->z * b->z;
+	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-__always_inline void cross(const float3 *a, const float3 *b, float3 *result)
-{
-	result->x = a->y * b->z - a->z * b->y;
-	result->y = a->z * b->x - a->x * b->z;
-	result->x = a->x * b->y - a->y * b->x;
+__always_inline float3 cross(float3 a, float3 b){
+	return FLOAT3(a.y * b.z - a.z * b.y,
+		      a.z * b.x - a.x * b.z,
+		      a.x * b.y - a.y * b.x);
 }
 
-__always_inline void vec_iadd(float3 *vector, const float3 *add)
+__always_inline float length(float3 vec)
 {
-	vector->x += add->x;
-	vector->y += add->y;
-	vector->z += add->z;
+	return sqrt(dot(vec, vec));
+}
+
+__always_inline float3 normalize(float3 vec)
+{
+	float l = 1 / length(vec);
+	return FLOAT3(vec.x * l, vec.y * l, vec.z * l);
+}
+
+__always_inline void vec_iadd(float3 *vector, const float3 add)
+{
+	vector->x += add.x;
+	vector->y += add.y;
+	vector->z += add.z;
 }
 
 __always_inline void rotate_vector(float3 *vector, const struct RotateMatrix *matrix)
 {
-	float x = dot(&matrix->row1, vector);
-	float y = dot(&matrix->row2, vector);
-	float z = dot(&matrix->row3, vector);
+	float x = dot(matrix->row1, *vector);
+	float y = dot(matrix->row2, *vector);
+	float z = dot(matrix->row3, *vector);
 
 	vector->x = x;
 	vector->y = y;

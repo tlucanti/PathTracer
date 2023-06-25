@@ -7,7 +7,7 @@
 
 EXTERN_C
 
-#define TRACE_BOUNCE_COUNT 30
+#define TRACE_BOUNCE_COUNT 5
 
 /**
  * rotateVector() function applies rotation to vector using precomputed rotation
@@ -20,11 +20,15 @@ EXTERN_C
 __always_inline void rotateVector(float3 *__restrict vector,
 				  const struct RotateMatrix *__restrict matrix)
 {
-
 	float x = dot(matrix->row1, *vector);
 	float y = dot(matrix->row2, *vector);
 	float z = dot(matrix->row3, *vector);
 	*vector = FLOAT3(x, y, z);
+}
+
+__always_inline float3 reflectRay(float3 ray, float3 normal)
+{
+	return normal * (2 * dot(ray, normal)) - ray;
 }
 
 /**
@@ -156,6 +160,48 @@ void intersectAllSpheres(const struct Ray *__restrict viewVector,
 	hitInfo->normal = hitInfo->hitPoint - closestSphere->position;
 	hitInfo->normal = normalize(hitInfo->normal); // ! divide by radius
 	hitInfo->emissionStrength = closestSphere->emissionStrength;
+	hitInfo->reflective = closestSphere->reflective;
+}
+
+float3 skyBoxColor(struct Ray *__restrict viewVector)
+{
+	float y = viewVector->direction.y;
+	float3 beg;
+	float3 end;
+
+	const float HORIZON_BORDER = 0.2;
+
+	const float3 SKY_COLOR = FLOAT3(0.3, 0.3, 1.0);
+	const float3 HORIZON_COLOR = FLOAT3(0.6, 0.6, 1.0);
+	const float3 GROUND_COLOR = FLOAT3(0.3, 0.2, 0.1);
+
+	y = (y + 1) / 2;
+	y = square(y);
+	if (y > HORIZON_BORDER) {
+		y = (y - HORIZON_BORDER) / (1.0 - HORIZON_BORDER);
+		beg = HORIZON_COLOR;
+		end = SKY_COLOR;
+	} else {
+		y = y / HORIZON_BORDER;
+		beg = GROUND_COLOR;
+		end = HORIZON_COLOR;
+	}
+
+	return lerp(beg, end, y);
+}
+
+float3 sunLight(struct Ray *__restrict viewVector)
+{
+	float sunPower = dot(SUN_DIRECTION, viewVector->direction);
+	float3 sun;
+	if (sunPower < 0) {
+		sun = BLACK;
+	} else {
+		sun = sunPower * WHITE;
+		sun = pow(sun, 100) * 1e2f;
+	}
+
+	return sun;
 }
 
 void tracePath(float3 *__restrict incomingLight,
@@ -168,20 +214,35 @@ void tracePath(float3 *__restrict incomingLight,
 	for (int i = 1; i <= TRACE_BOUNCE_COUNT + 1; ++i) {
 		intersectAllSpheres(viewVector, &hitInfo, spheres);
 		if (!hitInfo.didHit) {
-			*incomingLight += vec_mul(FLOAT3(0.6, 0.7, 1), rayColor);
+			float3 sun = sunLight(viewVector);
+
+			if (i == 1) {
+				float3 sky = skyBoxColor(viewVector);
+				*incomingLight += sun + sky;
+			} else {
+				float3 sky = fmin(4.0f, FLOAT3(0.6, 0.5, 0.6) + sun);
+				*incomingLight += vec_mul(sky, rayColor);
+			}
 			break;
 		}
+		viewVector->origin = hitInfo.hitPoint;
+		float3 diffuseDir = randomHemiSphere(hitInfo.normal, seed);
+		diffuseDir = normalize(diffuseDir + hitInfo.normal);
+		float3 specularDir = reflectRay(-viewVector->direction, hitInfo.normal);
+
+		viewVector->direction = lerp(diffuseDir, specularDir, hitInfo.reflective);
+
+
 		float3 emittedLight =
 			hitInfo.hitColor * hitInfo.emissionStrength;
-		float lightStrength = dot(hitInfo.normal, -viewVector->direction);
-		if (lightStrength <= 0 || 1) {
+		float lightStrength =
+			dot(hitInfo.normal, -viewVector->direction) * 2;
+		if (lightStrength <= 0) {
 			lightStrength = 1;
 		}
 		*incomingLight += vec_mul(emittedLight, rayColor);
 		rayColor = vec_mul(rayColor, hitInfo.hitColor * lightStrength);
 
-		viewVector->origin = hitInfo.hitPoint;
-		randomHemiSphere(&hitInfo.normal, &viewVector->direction, seed);
 		// ! dont run last two lines in the last iteration of loop
 	}
 }
@@ -190,7 +251,8 @@ __always_inline void pathTracer(__write_only image2d_t canvas,
 				__read_only image2d_t c2,
 				sphere_t *__restrict spheres, float3 position,
 				const struct RotateMatrix *matrix,
-				__local float3 *rayBuffer, bool resetCanvas, unsigned int frameNumber)
+				__local float3 *rayBuffer, bool resetCanvas,
+				unsigned int frameNumber)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
@@ -198,10 +260,10 @@ __always_inline void pathTracer(__write_only image2d_t canvas,
 	const short l = get_local_id(2);
 	float3 pixelColor = FLOAT3(0, 0, 0);
 	float3 prevColor;
-	unsigned int seed = ((frameNumber * 4096) + y) * 2048 + x;
+	unsigned int seed = (y * 2048) + x + frameNumber * 37421;
 	//unsigned int seed = (((l * 512) + y) * 2048 + x) frameNumber;
 
- #if 1
+#if 1
 	(void)rayBuffer;
 
 	for (int i = 0; i < RAYS_PER_PIXEL; ++i) {
@@ -212,7 +274,7 @@ __always_inline void pathTracer(__write_only image2d_t canvas,
 
 	if (!resetCanvas) {
 		prevColor = getPixelColor(c2, x, y);
-		float ratio = (float)1 / (float)frameNumber;
+		float ratio = (float)1.0 / (float)frameNumber;
 		pixelColor = prevColor * (1 - ratio) + pixelColor * ratio;
 	}
 	setPixelColor(canvas, x, y, pixelColor);
@@ -258,11 +320,13 @@ testKernel(__write_only image2d_t canvas, __constant struct Sphere *spheres,
 
 __kernel void runKernel(__write_only image2d_t canvas,
 			__constant struct Sphere *spheres, float3 position,
-			struct RotateMatrix matrix, int resetCanvas, __read_only image2d_t c2, unsigned int frameNumber)
+			struct RotateMatrix matrix, int resetCanvas,
+			__read_only image2d_t c2, unsigned int frameNumber)
 {
 	__local float3 rayBuffer[RAYS_PER_PIXEL];
 
-	pathTracer(canvas, c2, spheres, position, &matrix, rayBuffer, resetCanvas, frameNumber);
+	pathTracer(canvas, c2, spheres, position, &matrix, rayBuffer,
+		   resetCanvas, frameNumber);
 }
 
 EXTERN_C_END

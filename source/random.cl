@@ -67,18 +67,17 @@ nextRandomFloatNeg(unsigned int *__restrict seed)
  * sphere of radius 1. Distribution of direction is close to uniform, but with
  * small irregularites due to mapping vector from random cube to sphere.
  *
- * @param direction vector where to save result
  * @param seed used to generate numbers in random number sequence
  *
  * TODO: validate distribution
+ * ! update description
  */
-__inline static void randomDirection(float3 *__restrict direction,
-				     unsigned int *__restrict seed)
+__inline static float3 randomDirection(unsigned int *__restrict seed)
 {
-	direction->x = nextRandomFloatNeg(seed);
-	direction->y = nextRandomFloatNeg(seed);
-	direction->z = nextRandomFloatNeg(seed);
-	*direction = normalize(*direction);
+	float3 dir = FLOAT3(nextRandomFloatNeg(seed),
+			    nextRandomFloatNeg(seed),
+			    nextRandomFloatNeg(seed));
+	return normalize(dir);
 }
 
 /**
@@ -87,18 +86,18 @@ __inline static void randomDirection(float3 *__restrict direction,
  * generated vector will be at an angle less then pi / 2 to the normal
  *
  * @param normal orientation of hemisphere direction
- * @param direction vector where to save result
  * @param seed used to generate numbers in random number sequence
  *
  * TODO: validate distribution
+ * ! update description
  */
-__inline static void randomHemiSphere(const float3 *__restrict normal,
-				      float3 *__restrict direction,
+__inline static float3 randomHemiSphere(const float3 normal,
 				      unsigned int *__restrict seed)
 {
-	randomDirection(direction, seed);
-	if (dot(*direction, *normal) < 0)
-		*direction = -(*direction);
+	float3 dir = randomDirection(seed);
+	if (dot(dir, normal) < 0)
+		dir = -dir;
+	return dir;
 }
 
 EXTERN_C_END

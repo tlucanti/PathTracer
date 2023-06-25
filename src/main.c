@@ -14,7 +14,9 @@ typedef cl_float3 float3;
 #define TRACER_MOVE_STEP 0.1
 #define TRACER_LOOK_STEP (PI / 200.0)
 #define TRACER_MOUSE_LOOK_STEP (1e-3)
-#define SPHERES_NUM 7
+
+#define SPHERES_NUM 6
+#define SUN_DIRECTION normalize(FLOAT3(-1, 0.5, -0.3))
 
 struct Camera {
 	float3 position;
@@ -136,7 +138,7 @@ void move_camera(GLFWwindow *window)
 				g_tracer_state.camera.alpha,
 				g_tracer_state.camera.theta);
 	rotate_vector(&move_step, &g_tracer_state.camera.matrix);
-	vec_iadd(&g_tracer_state.camera.position, &move_step);
+	vec_iadd(&g_tracer_state.camera.position, move_step);
 
 	g_tracer_state.camera.theta += g_tracer_state.look_step[0];
 	g_tracer_state.camera.alpha += g_tracer_state.look_step[1];
@@ -233,13 +235,12 @@ static buffer_t create_scene(context_t context, queue_t queue)
 	struct Sphere spheres[SPHERES_NUM];
 	buffer_t scene;
 
-	spheres[0] = (struct Sphere){ WHITE, FLOAT3(-500, 80, 80), 1, 300 };
-	spheres[1] = (struct Sphere){ WHITE, FLOAT3(2, -0.3, 9), 0, 1.5 };
-	spheres[2] = (struct Sphere){ LRED, FLOAT3(1, -0.2, 5), 0.0, 1 };
-	spheres[3] = (struct Sphere){ LGREEN, FLOAT3(0, -0.3, 3), 0.0, 0.8 };
-	spheres[4] = (struct Sphere){ LBLUE, FLOAT3(-1, -0.55, 2), 0.0, 0.5 };
-	spheres[5] = (struct Sphere){ GREY, FLOAT3(-1.8, -0.75, 1.3), 0, 0.3 };
-	spheres[6] = (struct Sphere){ LPURPLE, FLOAT3(0, -50, 0), 0.0, 49 };
+	spheres[0] = (struct Sphere){ WHITE, FLOAT3(3, -0.1, 7), 0, 1.5, 0.9 };
+	spheres[1] = (struct Sphere){ LRED, FLOAT3(1.4, -0.2, 4.5), 0.0, 1, 0.0 };
+	spheres[2] = (struct Sphere){ LGREEN, FLOAT3(0, -0.3, 3), 0.0, 0.8, 0.0 };
+	spheres[3] = (struct Sphere){ LBLUE, FLOAT3(-1, -0.55, 2), 0.0, 0.5, 0.0 };
+	spheres[4] = (struct Sphere){ GREY, FLOAT3(-1.8, -0.75, 1.3), 0, 0.3, 0.0 };
+	spheres[5] = (struct Sphere){ LPURPLE, FLOAT3(0, -50, 0), 0.0, 49, 0.0 };
 
 	scene = create_buffer(context, read_only, sizeof(spheres));
 	fill_buffer(queue, scene, sizeof(spheres), spheres, true);
@@ -275,11 +276,14 @@ int main()
 	context_t context = create_gl_context(device, window);
 	queue_t queue = create_queue(context, device);
 
+	float3 sun_dir = SUN_DIRECTION;
 	printed = sprintf(compile_flags,
 			  "-I . -I source "
 			  "-D SCREEN_WIDTH=%d -D SCREEN_HEIGHT=%d "
-			  "-D SPHERES_NUM=%d -D RAYS_PER_PIXEL=%d ",
-			  width, height, SPHERES_NUM, RAYS_PER_PIXEL);
+			  "-D SPHERES_NUM=%d -D RAYS_PER_PIXEL=%d "
+			  "-D SUN_DIRECTION=FLOAT3(%f,%f,%f)",
+			  width, height, SPHERES_NUM, RAYS_PER_PIXEL,
+			  sun_dir.x, sun_dir.y, sun_dir.z);
 	panic_on(printed == 0 || printed > sizeof(compile_flags),
 		 "buffer overflow");
 	kernel_t kernel = create_kernel(device, context,
@@ -314,7 +318,7 @@ int main()
 			break;
 		}
 		if (g_tracer_state.reset_frame) {
-			frameNumber = 0;
+			frameNumber = 1;
 		}
 
 		set_kernel_arg_at(kernel, g_tracer_state.camera.position, 2);

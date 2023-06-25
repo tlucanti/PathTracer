@@ -41,9 +41,11 @@
 
 typedef __constant const struct Sphere sphere_t;
 
-__must_check __inline float square(float x)
+__always_inline __must_check float square(float x)
 {
 	return x * x;
 }
+
+#define lerp(start, end, val) (start) + (val) * ((end) - (start))
 
 #endif /* COMMON_CL */
