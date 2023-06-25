@@ -12,6 +12,7 @@ clgl:
 		-I include \
 		-I cllib/include \
 		-I winlib/include \
+		-D RAYS_PER_PIXEL=${RAYS_PER_PIXEL} \
 		cllib/src/cllib.c \
 		winlib/src/winlib.c \
 		src/main.c src/panic.c \
@@ -32,6 +33,7 @@ py:
 		-D __clcpp__ \
 		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
 		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
+		-D RAYS_PER_PIXEL=${RAYS_PER_PIXEL} \
 		-D DEFINED_SCREEN_SIZE \
 		src/test.cpp
 
@@ -79,4 +81,20 @@ libcl:
 		cllib/src/cllib.c src/panic.c
 	ar rcs build/libcl.a cllib.o panic.o
 	rm -f cllib.o panic.o
+
+test:
+	clang \
+		-Wall -Wextra -Werror \
+		-fdiagnostics-color=always \
+		-O0 -g3 \
+		-I . \
+		-I include \
+		-I cllib/include \
+		-D SCREEN_WIDTH=${SCREEN_WIDTH} \
+		-D SCREEN_HEIGHT=${SCREEN_HEIGHT} \
+		src/test.c \
+		cllib/src/cllib.c \
+		src/panic.c \
+		-L build \
+		-lOpenCL -lm -lcl
 

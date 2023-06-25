@@ -10,6 +10,9 @@
 #ifndef __always_inline
 #define __always_inline inline __attribute__((__always_inline__))
 #endif
+#ifndef __must_check
+#define __must_check __attribute__((__warn_unused_result__))
+#endif
 #ifndef __cold
 #define __cold __attribute__((__cold__))
 #endif

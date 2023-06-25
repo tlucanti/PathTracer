@@ -15,6 +15,7 @@ typedef cl_float3 float3;
 #include <linalg.h>
 
 #define SPHERES_NUM 5
+#define MULTIRAY false
 
 struct Camera {
 	float3 position;
@@ -28,11 +29,16 @@ struct tracer_state {
 	float3 move_step;
 	float look_vertical;
 	float look_horizontal;
+	int is_moving;
 	bool exit;
 };
 
 struct tracer_state g_tracer_state = {
 	.camera = { .position = FLOAT3(0, 0, 0), .alpha = 0, .theta = 0 },
+	.move_step = FLOAT3(0, 0, 0),
+	.look_vertical = 0,
+	.look_horizontal = 0,
+	.is_moving = 0,
 	.exit = false
 };
 
@@ -246,11 +252,11 @@ int main()
 	context_t context = create_gl_context(device, window);
 	queue_t queue = create_queue(context, device);
 
-	printed = sprintf(
-		compile_flags,
-		"-I . -I source "
-		"-D SPHERES_NUM=%d -D SCREEN_WIDTH=%d -D SCREEN_HEIGHT=%d",
-		SPHERES_NUM, width, height);
+	printed = sprintf(compile_flags,
+			  "-I . -I source "
+			  "-D SCREEN_WIDTH=%d -D SCREEN_HEIGHT=%d "
+			  "-D SPHERES_NUM=%d -D RAYS_PER_PIXEL=%d ",
+			  width, height, SPHERES_NUM, RAYS_PER_PIXEL);
 	panic_on(printed == 0 || printed > sizeof(compile_flags),
 		 "buffer overflow");
 	kernel_t kernel = create_kernel(device, context,
@@ -264,7 +270,12 @@ int main()
 
 	set_kernel_arg(kernel, image);
 	set_kernel_arg(kernel, scene);
-	set_kernel_size(kernel, width, height);
+#if MULTIRAY
+	set_kernel_size_3d(kernel, width, height, RAYS_PER_PIXEL);
+	set_kernel_local_size_3d(kernel, 1, 1, RAYS_PER_PIXEL);
+#else
+	set_kernel_size_2d(kernel, width, height);
+#endif
 
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);

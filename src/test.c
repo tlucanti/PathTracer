@@ -61,7 +61,7 @@ unsigned int *run()
 
 	set_kernel_arg(kernel, canvas);
 	set_kernel_arg(kernel, sp);
-	set_kernel_size(kernel, SCREEN_WIDTH, SCREEN_HEIGHT);
+	set_kernel_size_2d(kernel, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	run_kernel(queue, kernel);
 
@@ -70,6 +70,35 @@ unsigned int *run()
 	return (unsigned int *)g_canvas;
 }
 
-int main() {
-	run();
+void local_sync_test()
+{
+	device_t device = create_device(gpu_type);
+	context_t context = create_context(device);
+	queue_t queue = create_queue(context, device);
+
+	kernel_t kernel = create_kernel(device, context,
+					"#include <source/test.cl>",
+					"runKernel", compile_flags);
+
+	unsigned int pix[4];
+	buffer_t buf =
+		create_buffer(context, write_only | dump_only, sizeof(pix));
+
+	set_kernel_arg(kernel, buf);
+	set_kernel_size_2d(kernel, 8, 4);
+	set_kernel_local_size_2d(kernel, 8, 1);
+
+	run_kernel(queue, kernel);
+
+	dump_buffer(queue, buf, sizeof(pix), pix, true);
+
+	for (int i = 0; i < (int)ARRAY_SIZE(pix); ++i) {
+		printf("%d ", pix[i]);
+	}
+	printf("\n");
+}
+
+int main()
+{
+	local_sync_test();
 }

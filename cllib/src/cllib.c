@@ -2,7 +2,7 @@
 #include <cllib/cllib.h>
 #include <cllib/common.h>
 
-cl_platform_id __create_platform(void)
+__must_check cl_platform_id __create_platform(void)
 {
 	static cl_platform_id platform;
 	cl_uint num_platforms;
@@ -25,16 +25,15 @@ cl_platform_id __create_platform(void)
 	return platform;
 }
 
-device_t create_device(enum device_type type)
+__must_check device_t create_device(enum device_type type)
 {
-	cl_platform_id platform;
+	cl_platform_id platform = __create_platform();
 
 	cl_device_id dev;
 	cl_uint num_devices;
 
 	cl_int err;
 
-	platform = __create_platform();
 	err = clGetDeviceIDs(platform, type, 0, NULL, &num_devices);
 	cl_panic_on(err, "clGetDeviceIDs", err);
 	if (num_devices == 0) {
@@ -48,41 +47,41 @@ device_t create_device(enum device_type type)
 	return (device_t){ .__device = dev };
 }
 
-__always_inline context_t create_context(device_t device)
+__always_inline __must_check context_t create_context(device_t device)
 {
 	return create_context_with_props(device, NULL);
 }
 
-inline context_t create_context_with_props(device_t device,
-					   const context_props *properties)
+__always_inline __must_check context_t
+create_context_with_props(device_t device, const context_props *properties)
 {
 	cl_context context;
-	cl_device_id dev;
+	cl_device_id dev = device.__device;
 	cl_int err;
 
-	dev = device.__device;
 	context = clCreateContext(properties, 1, &dev, NULL, NULL, &err);
 	cl_panic_on(err, "clCreateContext", err);
 
 	return (context_t){ .__context = context };
 }
 
-kernel_t create_kernel(device_t device, context_t context, const char *source,
-		       const char *kernel_name, const char *options)
+__must_check kernel_t create_kernel(device_t device, context_t context,
+				    const char *source, const char *kernel_name,
+				    const char *options)
 {
+	cl_device_id dev = device.__device;
+	cl_context ctx = context.__context;
 	cl_program program;
-	cl_device_id dev;
-	cl_context ctx;
 	cl_kernel kernel;
-	cl_int err;
-	size_t log_size;
 
-	dev = device.__device;
-	ctx = context.__context;
+	size_t log_size;
+	cl_int err;
+
 	program = clCreateProgramWithSource(ctx, 1, &source, NULL, &err);
 	cl_panic_on(err, "clCreateProgramWithSource", err);
 	err = clBuildProgram(program, 1, &dev, options, NULL, NULL);
-	if (err == CL_BUILD_PROGRAM_FAILURE && CLLIB_PRINT_PROGRAM_LOG) {
+	if (unlikely(err == CL_BUILD_PROGRAM_FAILURE &&
+		     CLLIB_PRINT_PROGRAM_LOG)) {
 		err = clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG,
 					    0, NULL, &log_size);
 		if (err != CL_SUCCESS) {
@@ -101,35 +100,50 @@ kernel_t create_kernel(device_t device, context_t context, const char *source,
 
 	kernel = clCreateKernel(program, kernel_name, &err);
 	cl_panic_on(err, "clCreateKernel", err);
-	return (kernel_t){
-		.__kernel = kernel, .__arg = 0, .__width = -1, .__height = -1
-	};
+
+	return (kernel_t){ .__kernel = kernel,
+			   .__arg = 0,
+			   .__dimentions = 0,
+			   .__set_local = false };
 };
 
-inline queue_t create_queue(context_t context, device_t device)
+__always_inline __must_check queue_t create_queue(context_t context,
+						  device_t device)
 {
-	cl_context ctx;
-	cl_device_id dev;
+	cl_context ctx = context.__context;
+	cl_device_id dev = device.__device;
 	cl_command_queue queue;
 	cl_int err;
 
-	ctx = context.__context;
-	dev = device.__device;
 	queue = clCreateCommandQueueWithProperties(ctx, dev, NULL, &err);
 	cl_panic_on(err, "clCreateCommandQueueWithProperties", err);
 
 	return (queue_t){ .__queue = queue };
 }
 
-inline buffer_t create_buffer(context_t context, enum buffer_type type,
-			      size_t size)
+__always_inline __must_check buffer_t create_buffer(context_t context,
+						    enum buffer_type type,
+						    size_t size)
 {
-	cl_context ctx;
+	cl_context ctx = context.__context;
 	cl_mem buffer;
 	cl_int err;
 
-	ctx = context.__context;
 	buffer = clCreateBuffer(ctx, type, size, NULL, &err);
+	cl_panic_on(err, "clCreateBuffer", err);
+
+	return (buffer_t){ .__buffer = buffer };
+}
+
+__always_inline __must_check buffer_t create_buffer_from(context_t context,
+							 enum buffer_type type,
+							 void *ptr, size_t size)
+{
+	cl_context ctx = context.__context;
+	cl_mem buffer;
+	cl_int err;
+
+	buffer = clCreateBuffer(ctx, type, size, ptr, &err);
 	cl_panic_on(err, "clCreateBuffer", err);
 
 	return (buffer_t){ .__buffer = buffer };
@@ -138,50 +152,45 @@ inline buffer_t create_buffer(context_t context, enum buffer_type type,
 cl_mem clCreateFromGLRenderbuffer(cl_context context, cl_mem_flags flags,
 				  unsigned int renderbuffer,
 				  cl_int *errcode_ret);
-inline buffer_t create_buffer_from_rbo(context_t context, enum buffer_type type,
-				       unsigned int rbo)
+__always_inline __must_check buffer_t create_buffer_from_rbo(
+	context_t context, enum buffer_type type, unsigned int rbo)
 {
-	cl_context ctx;
+	cl_context ctx = context.__context;
 	cl_mem buffer;
 	cl_int err;
 
-	ctx = context.__context;
 	buffer = clCreateFromGLRenderbuffer(ctx, type, rbo, &err);
 	cl_panic_on(err, "clCreateFromGLRenderbuffer", err);
 
 	return (buffer_t){ .__buffer = buffer };
 }
 
-inline void fill_buffer(queue_t queue, buffer_t buffer, size_t size, void *data,
-			bool blocking_write)
+__always_inline void fill_buffer(queue_t queue, buffer_t buffer, size_t size,
+				 void *data, bool blocking_write)
 {
-	cl_command_queue qw;
-	cl_mem buff;
+	cl_command_queue qw = queue.__queue;
+	cl_mem buff = buffer.__buffer;
 	cl_int err;
 
-	qw = queue.__queue;
-	buff = buffer.__buffer;
 	err = clEnqueueWriteBuffer(qw, buff, blocking_write, 0, size, data, 0,
 				   NULL, NULL);
 	cl_panic_on(err, "clEnqueueWriteBuffer", err);
 }
 
-inline void dump_buffer(queue_t queue, buffer_t buffer, size_t size, void *data,
-			bool blocking_read)
+__always_inline void dump_buffer(queue_t queue, buffer_t buffer, size_t size,
+				 void *data, bool blocking_read)
 {
-	cl_command_queue qw;
-	cl_mem buff;
+	cl_command_queue qw = queue.__queue;
+	cl_mem buff = buffer.__buffer;
 	cl_int err;
 
-	qw = queue.__queue;
-	buff = buffer.__buffer;
 	err = clEnqueueReadBuffer(qw, buff, blocking_read, 0, size, data, 0,
 				  NULL, NULL);
 	cl_panic_on(err, "clEnqueueReadBuffer", err);
 }
 
-inline void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index,
-			     size_t arg_size, void *arg_value)
+__always_inline void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index,
+				      size_t arg_size, void *arg_value)
 {
 	cl_int err;
 
@@ -189,24 +198,61 @@ inline void __set_kernel_arg(cl_kernel kernel, unsigned int arg_index,
 	cl_panic_on(err, "clSetKernelArg", err);
 }
 
-inline void __run_kernel(cl_command_queue queue, cl_kernel kernel,
-			 unsigned int width, unsigned int height)
+__always_inline void __set_kernel_size(kernel_t *kernel,
+				       unsigned short dimentions, size_t width,
+				       size_t height, size_t depth)
 {
-	cl_int err;
-	size_t global_size[2] = { width, height };
-	size_t *local_size = NULL;
+	panic_on(kernel->__dimentions != 0 &&
+			 kernel->__dimentions != dimentions,
+		 "kernel local and global dimentions mismatch");
 
-	err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global_size,
-				     local_size, 0, NULL, NULL);
+	kernel->__dimentions = dimentions;
+	kernel->__global_size[0] = width;
+	kernel->__global_size[1] = height;
+	kernel->__global_size[2] = depth;
+}
+
+__always_inline void __set_kernel_local_size(kernel_t *kernel,
+					     unsigned short dimentions,
+					     size_t width, size_t height,
+					     size_t depth)
+{
+	panic_on(kernel->__dimentions != 0 &&
+			 kernel->__dimentions != dimentions,
+		 "kernel local and global dimentions mismatch");
+
+	kernel->__dimentions = dimentions;
+	kernel->__set_local = true;
+	kernel->__local_size[0] = width;
+	kernel->__local_size[1] = height;
+	kernel->__local_size[2] = depth;
+}
+
+__always_inline void __run_kernel(queue_t queue, kernel_t *kernel)
+{
+	cl_kernel kr = kernel->__kernel;
+	cl_command_queue qw = queue.__queue;
+
+	size_t *global_size = kernel->__global_size;
+	size_t *local_size = NULL;
+	cl_uint dim = kernel->__dimentions;
+
+	cl_int err;
+
+	kernel->__arg = 0;
+	if (kernel->__set_local) {
+		local_size = kernel->__local_size;
+	}
+	err = clEnqueueNDRangeKernel(qw, kr, dim, NULL, global_size, local_size,
+				     0, NULL, NULL);
 	cl_panic_on(err, "clEnqueueNDRangeKernel", err);
 }
 
-inline void flush_queue(queue_t queue)
+__always_inline void flush_queue(queue_t queue)
 {
-	cl_command_queue qw;
+	cl_command_queue qw = queue.__queue;
 	cl_int err;
 
-	qw = queue.__queue;
 	err = clFlush(qw);
 	cl_panic_on(err, "clFlush", err);
 }

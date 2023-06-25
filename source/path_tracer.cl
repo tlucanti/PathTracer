@@ -8,12 +8,10 @@
 EXTERN_C
 
 #define TRACE_BOUNCE_COUNT 3
-#define RAYS_PER_PIXEL 20
-
 
 /**
  * rotateVector() function applies rotation to vector using precomputed rotation
- * matrix
+ * matri
  *
  * @param vector initial vector, rotated vector will be saved inplace to this
  * 	pointer
@@ -46,24 +44,6 @@ __always_inline void setPixelColor(write_only image2d_t canvas,
 
 	write_imagef(canvas, coords, fcolor);
 	return;
-
-/*
-	unsigned int bit_color;
-
-	unsigned int blue = color->z * 255;
-	unsigned int green = color->y * 255;
-	unsigned int red = color->x * 255;
-
-	red = min(red, 255u);
-	green = min(green, 255u);
-	blue = min(blue, 255u);
-
-	bit_color = blue | (green << 8) | (red << 16);
-
-
-	y = SCREEN_HEIGHT - y - 1;
-	canvas[y * SCREEN_WIDTH + x] = bit_color;
-	*/
 }
 
 /**
@@ -195,13 +175,19 @@ void tracePath(float3 *__restrict incomingLight,
 
 __always_inline void pathTracer(write_only image2d_t canvas,
 				sphere_t *__restrict spheres, float3 position,
-				const struct RotateMatrix *matrix)
+				const struct RotateMatrix *matrix,
+				__local float3 *ray_buffer)
 {
 	struct Ray viewVector;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
+	const short l = get_local_id(2);
 	float3 pixelColor = FLOAT3(0, 0, 0);
-	unsigned int seed = (x << 12) + y;
+	unsigned int seed = ((l * 512) + y) * 2048 + x;
+
+
+ #if 1
+	(void)ray_buffer;
 
 	for (int i = 0; i < RAYS_PER_PIXEL; ++i) {
 		createViewVector(&viewVector, x, y, position, matrix);
@@ -209,18 +195,39 @@ __always_inline void pathTracer(write_only image2d_t canvas,
 	}
 	pixelColor *= (float)1.0 / (float)RAYS_PER_PIXEL;
 	setPixelColor(canvas, x, y, pixelColor);
+
+#else
+	createViewVector(&viewVector, x, y, position, matrix);
+	tracePath(&pixelColor, &viewVector, spheres, &seed);
+	ray_buffer[l] = pixelColor;
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	if (l == 0) {
+		for (int i = 1; i < RAYS_PER_PIXEL; ++i) {
+			pixelColor += ray_buffer[i];
+		}
+		pixelColor *= (float)1.0 / (float)RAYS_PER_PIXEL;
+		setPixelColor(canvas, x, y, pixelColor);
+	}
+#endif
 }
 
 __unused __always_inline void testKernel(write_only image2d_t canvas,
 					 __constant struct Sphere *spheres,
 					 float3 position,
-					 const struct RotateMatrix *matrix)
+					 const struct RotateMatrix *matrix,
+					 __local float3 *ray_buffer)
 {
 	(void)spheres;
+	(void)ray_buffer;
 	const short x = get_global_id(0);
 	const short y = get_global_id(1);
+	const short l = get_local_id(2);
 	struct Ray vec;
 
+	if (l != 0) {
+		return;
+	}
 	createViewVector(&vec, x, y, position, matrix);
 	vec.direction.x = fabs(vec.direction.x) * 2;
 	vec.direction.y = fabs(vec.direction.y) * 2;
@@ -232,7 +239,9 @@ __kernel void runKernel(write_only image2d_t canvas,
 			__constant struct Sphere *spheres, float3 position,
 			struct RotateMatrix matrix)
 {
-	pathTracer(canvas, spheres, position, &matrix);
+	__local float3 ray_buffer[RAYS_PER_PIXEL];
+
+	pathTracer(canvas, spheres, position, &matrix, ray_buffer);
 }
 
 EXTERN_C_END
