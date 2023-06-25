@@ -13,6 +13,7 @@ typedef cl_float3 float3;
 #define MULTIRAY false
 #define TRACER_MOVE_STEP 0.1
 #define TRACER_LOOK_STEP (PI / 200.0)
+#define TRACER_MOUSE_LOOK_STEP (1e-3)
 #define SPHERES_NUM 7
 
 struct Camera {
@@ -25,8 +26,9 @@ struct Camera {
 struct tracer_state {
 	struct Camera camera;
 	float3 move_step;
-	float look_vertical;
-	float look_horizontal;
+	float look_step[2];
+	float mouse_pos[2];
+	bool mouse_move;
 	cl_int reset_frame;
 	bool exit;
 };
@@ -34,8 +36,8 @@ struct tracer_state {
 struct tracer_state g_tracer_state = {
 	.camera = { .position = FLOAT3(4, 2.5, -3.5), .alpha = -0.5, .theta = 0.3 },
 	.move_step = FLOAT3(0, 0, 0),
-	.look_vertical = 0,
-	.look_horizontal = 0,
+	.look_step = { 0, 0 },
+	.mouse_move = false,
 	.reset_frame = 1,
 	.exit = false
 };
@@ -63,13 +65,13 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 		case GLFW_KEY_RIGHT_CONTROL:
 			g_tracer_state.move_step.y += -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_UP:
-			g_tracer_state.look_vertical += -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[0] += -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_DOWN:
-			g_tracer_state.look_vertical += TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[0] += TRACER_LOOK_STEP; break;
 		case GLFW_KEY_LEFT:
-			g_tracer_state.look_horizontal += -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[1] += -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
-			g_tracer_state.look_horizontal += TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[1] += TRACER_LOOK_STEP; break;
 		case GLFW_KEY_ENTER:
 			g_tracer_state.reset_frame ^= 1; break;
 		case GLFW_KEY_P: {
@@ -98,20 +100,35 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 		case GLFW_KEY_RIGHT_CONTROL:
 			g_tracer_state.move_step.y -= -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_UP:
-			g_tracer_state.look_vertical -= -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[0] -= -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_DOWN:
-			g_tracer_state.look_vertical -= TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[0] -= TRACER_LOOK_STEP; break;
 		case GLFW_KEY_LEFT:
-			g_tracer_state.look_horizontal -= -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[1] -= -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
-			g_tracer_state.look_horizontal -= TRACER_LOOK_STEP; break;
+			g_tracer_state.look_step[1] -= TRACER_LOOK_STEP; break;
 		case GLFW_KEY_ESCAPE:
 			g_tracer_state.exit = true; break;
 		}
 	}
 }
 
-void move_camera(void)
+static void mouse_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	(void)mods;
+
+	if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT) {
+		double x, y;
+		glfwGetCursorPos(window, &x, &y);
+		g_tracer_state.mouse_pos[0] = (float)x;
+		g_tracer_state.mouse_pos[1] = (float)y;
+		g_tracer_state.mouse_move = true;
+	} else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
+		g_tracer_state.mouse_move = false;
+	}
+}
+
+void move_camera(GLFWwindow *window)
 {
 	float3 move_step = g_tracer_state.move_step;
 
@@ -121,16 +138,30 @@ void move_camera(void)
 	rotate_vector(&move_step, &g_tracer_state.camera.matrix);
 	vec_iadd(&g_tracer_state.camera.position, &move_step);
 
-	g_tracer_state.camera.alpha += g_tracer_state.look_horizontal;
-	g_tracer_state.camera.theta += g_tracer_state.look_vertical;
+	g_tracer_state.camera.theta += g_tracer_state.look_step[0];
+	g_tracer_state.camera.alpha += g_tracer_state.look_step[1];
+
+	if (g_tracer_state.mouse_move) {
+		double x, y;
+		glfwGetCursorPos(window, &x, &y);
+
+		float dx = (float)x - g_tracer_state.mouse_pos[0];
+		float dy = (float)y - g_tracer_state.mouse_pos[1];
+
+		g_tracer_state.camera.alpha += dx * TRACER_MOUSE_LOOK_STEP;
+		g_tracer_state.camera.theta += dy * TRACER_MOUSE_LOOK_STEP;
+
+		g_tracer_state.mouse_pos[0] = x;
+		g_tracer_state.mouse_pos[1] = y;
+	}
 }
 
-static bool update_tracer_state(void)
+static bool update_tracer_state(GLFWwindow *window)
 {
 	if (g_tracer_state.exit) {
 		return true;
 	}
-	move_camera();
+	move_camera(window);
 
 	return false;
 }
@@ -272,12 +303,14 @@ int main()
 
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetMouseButtonCallback(window, mouse_callback);
+	glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	unsigned int frameNumber = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 
-		if (update_tracer_state()) {
+		if (update_tracer_state(window)) {
 			break;
 		}
 		if (g_tracer_state.reset_frame) {
