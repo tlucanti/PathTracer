@@ -1,7 +1,7 @@
 
 include .config
 
-all: py
+all: clgl
 
 clgl:
 	clang \

@@ -49,47 +49,52 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 	if (action == GLFW_PRESS) {
 		switch (key) {
 		case GLFW_KEY_W:
-			g_tracer_state.move_step.z = TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.z += TRACER_MOVE_STEP; break;
 		case GLFW_KEY_S:
-			g_tracer_state.move_step.z = -TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.z += -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_A:
-			g_tracer_state.move_step.x = -TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.x += -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_D:
-			g_tracer_state.move_step.x = TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.x += TRACER_MOVE_STEP; break;
 		case GLFW_KEY_SPACE:
-			g_tracer_state.move_step.y = TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.y += TRACER_MOVE_STEP; break;
 		case GLFW_KEY_LEFT_CONTROL:
 		case GLFW_KEY_RIGHT_CONTROL:
-			g_tracer_state.move_step.y = -TRACER_MOVE_STEP; break;
+			g_tracer_state.move_step.y += -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_UP:
-			g_tracer_state.look_vertical = -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_vertical += -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_DOWN:
-			g_tracer_state.look_vertical = TRACER_LOOK_STEP; break;
+			g_tracer_state.look_vertical += TRACER_LOOK_STEP; break;
 		case GLFW_KEY_LEFT:
-			g_tracer_state.look_horizontal = -TRACER_LOOK_STEP; break;
+			g_tracer_state.look_horizontal += -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
-			g_tracer_state.look_horizontal = TRACER_LOOK_STEP; break;
+			g_tracer_state.look_horizontal += TRACER_LOOK_STEP; break;
 		case GLFW_KEY_ESCAPE:
 			g_tracer_state.exit = true; break;
 		}
 	} else if (action == GLFW_RELEASE) {
 		switch (key) {
 		case GLFW_KEY_W:
+			g_tracer_state.move_step.z -= TRACER_MOVE_STEP; break;
 		case GLFW_KEY_S:
-			g_tracer_state.move_step.z = 0; break;
+			g_tracer_state.move_step.z -= -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_A:
+			g_tracer_state.move_step.x -= -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_D:
-			g_tracer_state.move_step.x = 0; break;
+			g_tracer_state.move_step.x -= TRACER_MOVE_STEP; break;
 		case GLFW_KEY_SPACE:
+			g_tracer_state.move_step.y -= TRACER_MOVE_STEP; break;
 		case GLFW_KEY_LEFT_CONTROL:
 		case GLFW_KEY_RIGHT_CONTROL:
-			g_tracer_state.move_step.y = 0; break;
+			g_tracer_state.move_step.y -= -TRACER_MOVE_STEP; break;
 		case GLFW_KEY_UP:
+			g_tracer_state.look_vertical -= -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_DOWN:
-			g_tracer_state.look_vertical = 0; break;
+			g_tracer_state.look_vertical -= TRACER_LOOK_STEP; break;
 		case GLFW_KEY_LEFT:
+			g_tracer_state.look_horizontal -= -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
-			g_tracer_state.look_horizontal = 0; break;
+			g_tracer_state.look_horizontal -= TRACER_LOOK_STEP; break;
 		case GLFW_KEY_ESCAPE:
 			g_tracer_state.exit = true; break;
 		}

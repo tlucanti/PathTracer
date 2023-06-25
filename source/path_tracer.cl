@@ -7,8 +7,8 @@
 
 EXTERN_C
 
-#define TRACE_BOUNCE_COUNT 2
-#define RAYS_PER_PIXEL 5
+#define TRACE_BOUNCE_COUNT 3
+#define RAYS_PER_PIXEL 20
 
 
 /**
