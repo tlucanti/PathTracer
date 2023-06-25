@@ -5,17 +5,15 @@
 #include <time.h>
 
 typedef cl_float3 float3;
-#define FLOAT3(X, Y, Z)                \
-	(float3)                       \
-	{                              \
-		.x = X, .y = Y, .z = Z \
-	}
+#define FLOAT3(X, Y, Z)(float3){ .x = X, .y = Y, .z = Z }
 #include "source/struct.cl"
 
 #include <linalg.h>
 
-#define SPHERES_NUM 5
 #define MULTIRAY false
+#define TRACER_MOVE_STEP 0.1
+#define TRACER_LOOK_STEP (PI / 200.0)
+#define SPHERES_NUM 7
 
 struct Camera {
 	float3 position;
@@ -29,21 +27,18 @@ struct tracer_state {
 	float3 move_step;
 	float look_vertical;
 	float look_horizontal;
-	int is_moving;
+	cl_int reset_frame;
 	bool exit;
 };
 
 struct tracer_state g_tracer_state = {
-	.camera = { .position = FLOAT3(0, 0, 0), .alpha = 0, .theta = 0 },
+	.camera = { .position = FLOAT3(4, 2.5, -3.5), .alpha = -0.5, .theta = 0.3 },
 	.move_step = FLOAT3(0, 0, 0),
 	.look_vertical = 0,
 	.look_horizontal = 0,
-	.is_moving = 0,
+	.reset_frame = 1,
 	.exit = false
 };
-
-#define TRACER_MOVE_STEP 0.1
-#define TRACER_LOOK_STEP (PI / 200.0)
 
 static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 			 int mods)
@@ -75,7 +70,16 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 			g_tracer_state.look_horizontal += -TRACER_LOOK_STEP; break;
 		case GLFW_KEY_RIGHT:
 			g_tracer_state.look_horizontal += TRACER_LOOK_STEP; break;
-		case GLFW_KEY_ESCAPE:
+		case GLFW_KEY_ENTER:
+			g_tracer_state.reset_frame ^= 1; break;
+		case GLFW_KEY_P: {
+			float3 p = g_tracer_state.camera.position;
+			float alpha = g_tracer_state.camera.alpha;
+			float theta = g_tracer_state.camera.theta;
+			printf("position {%f, %f, %f}, direction {%f %f}\n",
+			       p.x, p.y, p.z, alpha, theta);
+			break;
+		} case GLFW_KEY_ESCAPE:
 			g_tracer_state.exit = true; break;
 		}
 	} else if (action == GLFW_RELEASE) {
@@ -198,27 +202,13 @@ static buffer_t create_scene(context_t context, queue_t queue)
 	struct Sphere spheres[SPHERES_NUM];
 	buffer_t scene;
 
-
-	spheres[0] = (struct Sphere){ .color = RED,
-				      .position = FLOAT3(-0.3, -0.8, 9),
-				      .emissionStrength = 0.0,
-				      .radius = 1 };
-	spheres[1] = (struct Sphere){ .color = PURPLE,
-				      .position = FLOAT3(0, -100, 0),
-				      .emissionStrength = 0.0,
-				      .radius = 99 };
-	spheres[2] = (struct Sphere){ .color = BLUE,
-				      .position = FLOAT3(0, 0, 7),
-				      .emissionStrength = 0.05,
-				      .radius = 0.8 };
-	spheres[3] = (struct Sphere){ .color = WHITE,
-				      .position = FLOAT3(-8, 8, 10),
-				      .emissionStrength = 1,
-				      .radius = 10 };
-	spheres[4] = (struct Sphere){ .color = CYAN,
-				      .position = FLOAT3(1.3, -0.3, 7),
-				      .emissionStrength = 0.0,
-				      .radius = 0.7 };
+	spheres[0] = (struct Sphere){ WHITE, FLOAT3(-500, 80, 80), 1, 300 };
+	spheres[1] = (struct Sphere){ WHITE, FLOAT3(2, -0.3, 9), 0, 1.5 };
+	spheres[2] = (struct Sphere){ LRED, FLOAT3(1, -0.2, 5), 0.0, 1 };
+	spheres[3] = (struct Sphere){ LGREEN, FLOAT3(0, -0.3, 3), 0.0, 0.8 };
+	spheres[4] = (struct Sphere){ LBLUE, FLOAT3(-1, -0.55, 2), 0.0, 0.5 };
+	spheres[5] = (struct Sphere){ GREY, FLOAT3(-1.8, -0.75, 1.3), 0, 0.3 };
+	spheres[6] = (struct Sphere){ LPURPLE, FLOAT3(0, -50, 0), 0.0, 49 };
 
 	scene = create_buffer(context, read_only, sizeof(spheres));
 	fill_buffer(queue, scene, sizeof(spheres), spheres, true);
@@ -243,6 +233,8 @@ static void announce_fps()
 
 int main()
 {
+	srandom(time(NULL));
+
 	char compile_flags[255];
 	size_t printed;
 	unsigned int width, height;
@@ -270,6 +262,7 @@ int main()
 
 	set_kernel_arg(kernel, image);
 	set_kernel_arg(kernel, scene);
+	set_kernel_arg_at(kernel, image, 5);
 #if MULTIRAY
 	set_kernel_size_3d(kernel, width, height, RAYS_PER_PIXEL);
 	set_kernel_local_size_3d(kernel, 1, 1, RAYS_PER_PIXEL);
@@ -280,14 +273,21 @@ int main()
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	unsigned int frameNumber = 0;
+
 	while (!glfwWindowShouldClose(window)) {
 
 		if (update_tracer_state()) {
 			break;
 		}
+		if (g_tracer_state.reset_frame) {
+			frameNumber = 0;
+		}
 
 		set_kernel_arg_at(kernel, g_tracer_state.camera.position, 2);
 		set_kernel_arg_at(kernel, g_tracer_state.camera.matrix, 3);
+		set_kernel_arg_at(kernel, g_tracer_state.reset_frame, 4);
+		set_kernel_arg_at(kernel, frameNumber, 6);
 		// process call
 		compute(queue, image, kernel);
 		// render call
@@ -298,6 +298,7 @@ int main()
 		glfwPollEvents();
 
 		announce_fps();
+		++frameNumber;
 	}
 
 	glfwDestroyWindow(window);

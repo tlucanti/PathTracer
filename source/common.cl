@@ -2,7 +2,7 @@
 #ifndef COMMON_CL
 # define COMMON_CL
 
-# define EPS 1e-2
+# define EPS 1e-4
 
 # ifndef __always_inline
 #  define __always_inline inline __attribute__((__always_inline__))
