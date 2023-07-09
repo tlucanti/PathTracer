@@ -10,6 +10,7 @@ EXTERN_C
 #define RAND_MAX UINT_MAX
 #endif /* RAND_MAX */
 #define RAND_HALF (UINT_MAX / 2)
+#define PI 3.14159265358979323846
 
 /**
  * nextRandomInt() generates integer number sequence in uniform distribution
@@ -35,7 +36,7 @@ nextRandomInt(unsigned int prev)
  * @param seed used to generate next random number. Seed is modifyed after
  * 	every call of the function. In first function call *seed value need
  * 	to be set to random value to get different sequence each time
- * @return next random float in range [0, 1] from previous generated number
+ * @return next random float in range [0, 1] from previous seed value
  *
  * TODO: validate distribution
  */
@@ -47,11 +48,26 @@ nextRandomFloat(unsigned int *__restrict seed)
 }
 
 /**
+ * nextRandomFloatNormal() generates float number sequence in normal
+ * distribution with mean = 0 and std = 1.0
+ *
+ * @param seed used to generate next random number in sequence
+ * @return next normal distributed float number from previous seed value
+ */
+__always_inline __must_check static float
+nextRandomFloatNormal(unsigned int *__restrict seed)
+{
+	float theta = 2 * PI * nextRandomFloat(seed);
+	float rho = sqrt(-2 * log(nextRandomFloat(seed)));
+	return rho * cos(theta);
+}
+
+/**
  * nextRandomFloatNeg() generates float number sequence in uniform distribution
  * in range [-1, 1]. Function works like a `nextRandomFloat` function
  *
  * @param seed used to generate next random number in sequence
- * @return next random float in range [-1, 1] from previous generated number
+ * @return next random float in range [-1, 1] from previous seed value
  *
  * TODO: validate distribution
  */

@@ -235,12 +235,13 @@ static buffer_t create_scene(context_t context, queue_t queue)
 	struct Sphere spheres[SPHERES_NUM];
 	buffer_t scene;
 
-	spheres[0] = (struct Sphere){ WHITE, FLOAT3(3, -0.1, 7), 0, 1.5, 0.9 };
-	spheres[1] = (struct Sphere){ LRED, FLOAT3(1.4, -0.2, 4.5), 0.0, 1, 0.0 };
-	spheres[2] = (struct Sphere){ LGREEN, FLOAT3(0, -0.3, 3), 0.0, 0.8, 0.0 };
-	spheres[3] = (struct Sphere){ LBLUE, FLOAT3(-1, -0.55, 2), 0.0, 0.5, 0.0 };
-	spheres[4] = (struct Sphere){ GREY, FLOAT3(-1.8, -0.75, 1.3), 0, 0.3, 0.0 };
-	spheres[5] = (struct Sphere){ LPURPLE, FLOAT3(0, -50, 0), 0.0, 49, 0.0 };
+	// color, position, emission radius, reflective
+	spheres[0] = (struct Sphere){ WHITE, FLOAT3(3, -0.1, 7), 0, 1.5, 0.95, 0.0 };
+	spheres[1] = (struct Sphere){ LRED, FLOAT3(1.4, -0.2, 4.5), 0.0, 1, 0.0, 0.00 };
+	spheres[2] = (struct Sphere){ LGREEN, FLOAT3(0, -0.3, 3), 0.0, 0.8, 0.0, 0.0 };
+	spheres[3] = (struct Sphere){ LBLUE, FLOAT3(-1, -0.55, 2), 0.0, 0.5, 0.0, 0.0 };
+	spheres[4] = (struct Sphere){ GREY, FLOAT3(-1.8, -0.75, 1.3), 0, 0.3, 0.0, 0.0 };
+	spheres[5] = (struct Sphere){ LPURPLE, FLOAT3(0, -50, 0), 0.0, 49, 0.0, 0.0 };
 
 	scene = create_buffer(context, read_only, sizeof(spheres));
 	fill_buffer(queue, scene, sizeof(spheres), spheres, true);

@@ -171,9 +171,9 @@ float3 skyBoxColor(struct Ray *__restrict viewVector)
 
 	const float HORIZON_BORDER = 0.2;
 
-	const float3 SKY_COLOR = FLOAT3(0.3, 0.3, 1.0);
-	const float3 HORIZON_COLOR = FLOAT3(0.6, 0.6, 1.0);
-	const float3 GROUND_COLOR = FLOAT3(0.3, 0.2, 0.1);
+	const float3 SKY_COLOR = FLOAT3(0.56, 0.7, 1.0);
+	const float3 HORIZON_COLOR = FLOAT3(0.7, 0.8, 1.0);
+	const float3 GROUND_COLOR = FLOAT3(0.7, 0.4, 0.3);
 
 	y = (y + 1) / 2;
 	y = square(y);
@@ -210,41 +210,37 @@ void tracePath(float3 *__restrict incomingLight,
 {
 	float3 rayColor = FLOAT3(1, 1, 1);
 	struct HitInfo hitInfo;
+	int i;
 
-	for (int i = 1; i <= TRACE_BOUNCE_COUNT + 1; ++i) {
+	for (i = 1; i <= TRACE_BOUNCE_COUNT + 1; ++i) {
 		intersectAllSpheres(viewVector, &hitInfo, spheres);
 		if (!hitInfo.didHit) {
-			float3 sun = sunLight(viewVector);
-
-			if (i == 1) {
-				float3 sky = skyBoxColor(viewVector);
-				*incomingLight += sun + sky;
-			} else {
-				float3 sky = fmin(4.0f, FLOAT3(0.6, 0.5, 0.6) + sun);
-				*incomingLight += vec_mul(sky, rayColor);
-			}
 			break;
 		}
 		viewVector->origin = hitInfo.hitPoint;
-		float3 diffuseDir = randomHemiSphere(hitInfo.normal, seed);
-		diffuseDir = normalize(diffuseDir + hitInfo.normal);
+		float3 diffuseDir = normalize(randomHemiSphere(hitInfo.normal, seed) + hitInfo.normal * 0.5f);
 		float3 specularDir = reflectRay(-viewVector->direction, hitInfo.normal);
 
-		viewVector->direction = lerp(diffuseDir, specularDir, hitInfo.reflective);
+		float3 emittedLight = hitInfo.hitColor * hitInfo.emissionStrength;
 
-
-		float3 emittedLight =
-			hitInfo.hitColor * hitInfo.emissionStrength;
-		float lightStrength =
-			dot(hitInfo.normal, -viewVector->direction) * 2;
-		if (lightStrength <= 0) {
-			lightStrength = 1;
+		if (hitInfo.specular >= nextRandomFloat(seed)) {
+			viewVector->direction = specularDir;
+			*incomingLight += emittedLight;
+		} else {
+			viewVector->direction = normalize(lerp(diffuseDir, specularDir, hitInfo.reflective));
+			*incomingLight += vec_mul(emittedLight, rayColor);
+			rayColor = vec_mul(rayColor, hitInfo.hitColor);
 		}
-		*incomingLight += vec_mul(emittedLight, rayColor);
-		rayColor = vec_mul(rayColor, hitInfo.hitColor * lightStrength);
+
 
 		// ! dont run last two lines in the last iteration of loop
 	}
+
+
+	float3 sun = sunLight(viewVector);
+	float3 sky = skyBoxColor(viewVector);
+	*incomingLight += vec_mul(fmin(4.0f, sun + sky), rayColor);
+
 }
 
 __always_inline void pathTracer(__write_only image2d_t canvas,

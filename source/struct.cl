@@ -19,6 +19,7 @@ struct HitInfo {
 	float3 normal;
 	float emissionStrength;
 	float reflective;
+	float specular;
 	bool didHit;
 };
 
@@ -28,6 +29,7 @@ struct Sphere {
 	float emissionStrength;
 	float radius; // ! save squared instead
 	float reflective;
+	float specular;
 };
 
 # define RED FLOAT3(1, 0, 0)
