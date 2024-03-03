@@ -40,7 +40,7 @@ struct tracer_state g_tracer_state = {
 	.move_step = FLOAT3(0, 0, 0),
 	.look_step = { 0, 0 },
 	.mouse_move = false,
-	.reset_frame = 1,
+	.reset_frame = 0,
 	.exit = false
 };
 
@@ -52,6 +52,7 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 	(void)scancode;
 
 	if (action == GLFW_PRESS) {
+		g_tracer_state.reset_frame += 1;
 		switch (key) {
 		case GLFW_KEY_W:
 			g_tracer_state.move_step.z += TRACER_MOVE_STEP; break;
@@ -75,7 +76,7 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 		case GLFW_KEY_RIGHT:
 			g_tracer_state.look_step[1] += TRACER_LOOK_STEP; break;
 		case GLFW_KEY_ENTER:
-			g_tracer_state.reset_frame ^= 1; break;
+			break;
 		case GLFW_KEY_P: {
 			float3 p = g_tracer_state.camera.position;
 			float alpha = g_tracer_state.camera.alpha;
@@ -87,6 +88,7 @@ static void key_callback(GLFWwindow *wind, int key, int scancode, int action,
 			g_tracer_state.exit = true; break;
 		}
 	} else if (action == GLFW_RELEASE) {
+		g_tracer_state.reset_frame -= 1;
 		switch (key) {
 		case GLFW_KEY_W:
 			g_tracer_state.move_step.z -= TRACER_MOVE_STEP; break;
@@ -125,8 +127,10 @@ static void mouse_callback(GLFWwindow* window, int button, int action, int mods)
 		g_tracer_state.mouse_pos[0] = (float)x;
 		g_tracer_state.mouse_pos[1] = (float)y;
 		g_tracer_state.mouse_move = true;
+		g_tracer_state.reset_frame += 1;
 	} else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
 		g_tracer_state.mouse_move = false;
+		g_tracer_state.reset_frame -= 1;
 	}
 }
 
